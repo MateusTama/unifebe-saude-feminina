@@ -2,6 +2,7 @@
 // TEMA VIDAFEM — Baseado no Design System oficial
 // ============================================================
 
+// --- CORES (valores hex) ---
 export const cores = {
   // Primária — Lilás suave (HSL 259 100% 74%)
   primaria: '#9B6BFF',
@@ -35,14 +36,16 @@ export const cores = {
 
   // Branco puro
   branco: '#FFFFFF',
-};
+} as const;
+
+export type TokenCor = keyof typeof cores;
 
 // --- TIPOGRAFIA ---
 // Outfit para títulos, Inter para corpo
 export const tipografia = {
   // Famílias
-  fonteDisplay: 'Outfit',   // Títulos
-  fonteCorpo: 'Inter',      // Corpo de texto
+  fonteDisplay: 'Outfit',
+  fonteCorpo: 'Inter',
 
   // Tamanhos
   tamanhoXp: 11,
