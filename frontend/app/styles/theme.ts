@@ -98,6 +98,21 @@ export const sombra = {
   },
 };
 
+// --- INPUTS ---
+export const input = {
+  raio: borda.md,
+  bordaCor: cores.borda,
+  bordaEspessura: 1,
+  bordaCorFocado: cores.primaria,
+  bordaEspessuraFocado: 2,
+  fundo: cores.branco,
+  paddingHorizontal: espacamento.md,
+  paddingVertical: espacamento.pq,
+  tamanhoFonte: tipografia.tamanhoMd,
+  corTexto: cores.textoPrincipal,
+  corPlaceholder: cores.muted,
+};
+
 // --- EXPORT DEFAULT ---
-const tema = { cores, tipografia, espacamento, borda, sombra };
+const tema = { cores, tipografia, espacamento, borda, sombra, input };
 export default tema;
