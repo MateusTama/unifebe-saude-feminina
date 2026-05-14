@@ -5,6 +5,7 @@ import Header from "./components/Header";
 import Input from "./components/Input";
 import ComboBox from "./components/ComboBox";
 import DateInput from "./components/DateInput";
+import Button from "./components/Button";
 
 export default function Index() {
   const [nome, setNome] = useState('');
@@ -61,6 +62,38 @@ export default function Index() {
             rotulo="Data de Nascimento"
             valor={dataNascimento}
             aoMudar={setDataNascimento}
+          />
+
+          <Button
+            titulo="Cadastrar"
+            onPress={() => {}}
+          />
+
+          <Button
+            titulo="Salvar alterações"
+            icone="check"
+            onPress={() => {}}
+          />
+
+          <Button
+            titulo="Lembretes"
+            variante="lista"
+            icone="notifications-none"
+            onPress={() => {}}
+          />
+
+          <Button
+            titulo="Sair da conta"
+            variante="destrutivo"
+            icone="logout"
+            onPress={() => {}}
+          />
+
+          <Button
+            titulo="Registrar menstruação"
+            variante="tracejado"
+            icone="water-drop"
+            onPress={() => {}}
           />
         </View>
       </ScrollView>
