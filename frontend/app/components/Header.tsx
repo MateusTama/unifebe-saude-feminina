@@ -6,6 +6,7 @@ interface HeaderProps {
   nome?: string;
   editando: boolean;
   aoClicarIcone: () => void;
+  ocultarIcone?: boolean;
 }
 
 export default function Header(props: HeaderProps) {
@@ -13,13 +14,15 @@ export default function Header(props: HeaderProps) {
     <View style={estilos.container}>
       <Text style={estilos.titulo}>{props.nome ?? 'VidaFem'}</Text>
 
-      <TouchableOpacity onPress={props.aoClicarIcone}>
-        <MaterialIcons
-          name={props.editando ? 'close' : 'edit'}
-          size={20}
-          color={props.editando ? tema.cores.textoPrincipal : tema.cores.primaria}
-        />
-      </TouchableOpacity>
+      {!props.ocultarIcone && (
+        <TouchableOpacity onPress={props.aoClicarIcone}>
+          <MaterialIcons
+            name={props.editando ? 'close' : 'edit'}
+            size={20}
+            color={props.editando ? tema.cores.textoPrincipal : tema.cores.primaria}
+          />
+        </TouchableOpacity>
+      )}
     </View>
   );
 }
