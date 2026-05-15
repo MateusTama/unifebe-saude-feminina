@@ -5,8 +5,9 @@ import Header from "./components/Header";
 import Input from "./components/Input";
 import ComboBox from "./components/ComboBox";
 import DateInput from "./components/DateInput";
-import Switch from "./components/Switch";
+import SwitchCard from "./components/SwitchCard";
 import tema from "./styles/theme";
+import Button from "./components/Button";
 
 export default function Index() {
   const [nome, setNome] = useState('');
@@ -15,6 +16,7 @@ export default function Index() {
   const [sexo, setSexo] = useState<string | null>(null);
   const [dataNascimento, setDataNascimento] = useState<Date | undefined>(undefined);
   const [notificacoes, setNotificacoes] = useState(false);
+  const [compartilharDados, setCompartilharDados] = useState(false);
 
   return (
     <View style={estilos.container}>
@@ -66,10 +68,53 @@ export default function Index() {
             aoMudar={setDataNascimento}
           />
 
-          <View style={estilos.switchContainer}>
-            <Text style={estilos.switchRotulo}>Receber Notificações</Text>
-            <Switch valor={notificacoes} aoMudarValor={setNotificacoes} />
-          </View>
+          <SwitchCard
+            icone="notifications-none"
+            titulo="Notificações"
+            subtitulo="Receber lembretes e alertas"
+            valor={notificacoes}
+            aoMudarValor={setNotificacoes}
+          />
+
+          <SwitchCard
+            icone="share"
+            titulo="Compartilhar dados"
+            subtitulo="Permitir uso anônimo para pesquisa"
+            valor={compartilharDados}
+            aoMudarValor={setCompartilharDados}
+          />
+
+          <Button
+            titulo="Cadastrar"
+            onPress={() => { }}
+          />
+
+          <Button
+            titulo="Salvar alterações"
+            icone="check"
+            onPress={() => { }}
+          />
+
+          <Button
+            titulo="Lembretes"
+            variante="lista"
+            icone="notifications-none"
+            onPress={() => { }}
+          />
+
+          <Button
+            titulo="Sair da conta"
+            variante="destrutivo"
+            icone="logout"
+            onPress={() => { }}
+          />
+
+          <Button
+            titulo="Registrar menstruação"
+            variante="tracejado"
+            icone="water-drop"
+            onPress={() => { }}
+          />
         </View>
       </ScrollView>
 
@@ -88,16 +133,5 @@ const estilos = StyleSheet.create({
   formulario: {
     padding: 16,
     gap: 16,
-  },
-  switchContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 8,
-  },
-  switchRotulo: {
-    fontSize: tema.tipografia.tamanhoMd,
-    fontFamily: tema.tipografia.fonteCorpo,
-    color: tema.cores.textoPrincipal,
   },
 });

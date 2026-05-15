@@ -1,7 +1,3 @@
-// ============================================================
-// TEMA VIDAFEM — Baseado no Design System oficial
-// ============================================================
-
 // --- CORES (valores hex) ---
 export const cores = {
   // Primária — Lilás suave (HSL 259 100% 74%)
@@ -31,6 +27,9 @@ export const cores = {
   // Muted — Cinza claro (HSL 214 32% 93%)
   muted: '#E8ECF4',
 
+  // Muted Foreground — Cinza médio (HSL 215 16% 47%)
+  mutedForeground: '#64748B',
+
   // Borda — Cinza muito claro (HSL 214 32% 91%)
   borda: '#E2E7F2',
 
@@ -43,9 +42,24 @@ export type TokenCor = keyof typeof cores;
 // --- TIPOGRAFIA ---
 // Outfit para títulos, Inter para corpo
 export const tipografia = {
-  // Famílias
-  fonteDisplay: 'Outfit',
-  fonteCorpo: 'Inter',
+  // Famílias base (usar apenas quando não há peso específico disponível)
+  fonteDisplay: 'Outfit_400Regular',
+  fonteCorpo: 'Inter_400Regular',
+
+  // Variantes Outfit (títulos)
+  outfit: {
+    regular:  'Outfit_400Regular',
+    medio:    'Outfit_500Medium',
+    semibold: 'Outfit_600SemiBold',
+    negrito:  'Outfit_700Bold',
+  },
+
+  // Variantes Inter (corpo)
+  inter: {
+    regular:  'Inter_400Regular',
+    medio:    'Inter_500Medium',
+    semibold: 'Inter_600SemiBold',
+  },
 
   // Tamanhos
   tamanhoXp: 11,
@@ -55,7 +69,7 @@ export const tipografia = {
   tamanhoXg: 22,
   tamanho2xg: 28,
 
-  // Pesos
+  // Pesos numéricos (para uso com fontFamily genérico, evitar quando possível)
   regular: '400' as const,
   medio: '500' as const,
   semibold: '600' as const,

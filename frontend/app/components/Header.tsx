@@ -37,7 +37,7 @@ const estilos = StyleSheet.create({
   },
   titulo: {
     fontSize: tema.tipografia.tamanhoXg,
-    fontWeight: tema.tipografia.negrito,
+    fontFamily: tema.tipografia.outfit.negrito,
     color: tema.cores.textoPrincipal,
   },
 });
