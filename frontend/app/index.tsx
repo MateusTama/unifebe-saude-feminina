@@ -1,10 +1,12 @@
 import { useState } from "react";
-import { StyleSheet, View, ScrollView } from "react-native";
+import { StyleSheet, View, ScrollView, Text } from "react-native";
 import BottomNavBar from "./components/BottomNavBar";
 import Header from "./components/Header";
 import Input from "./components/Input";
 import ComboBox from "./components/ComboBox";
 import DateInput from "./components/DateInput";
+import Switch from "./components/Switch";
+import tema from "./styles/theme";
 
 export default function Index() {
   const [nome, setNome] = useState('');
@@ -12,39 +14,40 @@ export default function Index() {
   const [senha, setSenha] = useState('');
   const [sexo, setSexo] = useState<string | null>(null);
   const [dataNascimento, setDataNascimento] = useState<Date | undefined>(undefined);
+  const [notificacoes, setNotificacoes] = useState(false);
 
   return (
     <View style={estilos.container}>
       <Header
         nome="Cadastro"
         editando={false}
-        aoClicarIcone={() => {}}
+        aoClicarIcone={() => { }}
       />
-      
+
       <ScrollView style={estilos.conteudo}>
         <View style={estilos.formulario}>
-          <Input 
+          <Input
             rotulo="Nome Completo"
-            valor={nome} 
-            aoMudar={setNome} 
+            valor={nome}
+            aoMudar={setNome}
             placeholder="Digite seu nome"
           />
-          
-          <Input 
+
+          <Input
             rotulo="Email"
-            valor={email} 
-            aoMudar={setEmail} 
+            valor={email}
+            aoMudar={setEmail}
             placeholder="seu@email.com"
           />
-          
-          <Input 
+
+          <Input
             rotulo="Senha"
-            valor={senha} 
-            aoMudar={setSenha} 
+            valor={senha}
+            aoMudar={setSenha}
             placeholder="Digite sua senha"
             seguro={true}
           />
-          
+
           <ComboBox
             rotulo="Sexo"
             valor={sexo}
@@ -56,15 +59,20 @@ export default function Index() {
               { rotulo: 'Outro', valor: 'outro' },
             ]}
           />
-          
+
           <DateInput
             rotulo="Data de Nascimento"
             valor={dataNascimento}
             aoMudar={setDataNascimento}
           />
+
+          <View style={estilos.switchContainer}>
+            <Text style={estilos.switchRotulo}>Receber Notificações</Text>
+            <Switch valor={notificacoes} aoMudarValor={setNotificacoes} />
+          </View>
         </View>
       </ScrollView>
-      
+
       <BottomNavBar />
     </View>
   );
@@ -80,5 +88,16 @@ const estilos = StyleSheet.create({
   formulario: {
     padding: 16,
     gap: 16,
+  },
+  switchContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  switchRotulo: {
+    fontSize: tema.tipografia.tamanhoMd,
+    fontFamily: tema.tipografia.fonteCorpo,
+    color: tema.cores.textoPrincipal,
   },
 });
