@@ -7,9 +7,10 @@ type DateInputProps = {
   rotulo?: string;
   valor?: Date;
   aoMudar: (data: Date) => void;
+  erro?: string;
 };
 
-export default function DateInput({ rotulo, valor, aoMudar }: DateInputProps) {
+export default function DateInput({ rotulo, valor, aoMudar, erro }: DateInputProps) {
   const [texto, setTexto] = useState('');
   const [focado, setFocado] = useState(false);
 
@@ -81,6 +82,7 @@ export default function DateInput({ rotulo, valor, aoMudar }: DateInputProps) {
         />
         <MaterialIcons name="calendar-today" size={20} color={cores.textoPrincipal} />
       </View>
+      {erro && <Text style={estilos.erroTexto}>{erro}</Text>}
     </View>
   );
 }
@@ -109,6 +111,11 @@ const estilos = StyleSheet.create({
   campoFocado: {
     borderColor: input.bordaCorFocado,
     borderWidth: input.bordaEspessuraFocado,
+  },
+  erroTexto: {
+    color: cores.destrutivo,
+    fontSize: tipografia.tamanhoPq,
+    fontFamily: tipografia.inter.regular,
   },
   input: {
     flex: 1,

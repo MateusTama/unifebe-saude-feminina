@@ -15,6 +15,7 @@ type ComboBoxProps = {
   itens: ItemComboBox[];
   placeholder?: string;
   zIndex?: number;
+  erro?: string;
 };
 
 export default function ComboBox(props: ComboBoxProps) {
@@ -50,6 +51,7 @@ export default function ComboBox(props: ComboBoxProps) {
         arrowIconStyle={estilos.icone}
         tickIconStyle={estilos.icone}
       />
+      {props.erro && <Text style={estilos.erroTexto}>{props.erro}</Text>}
     </View>
   );
 }
@@ -75,6 +77,11 @@ const estilos = StyleSheet.create({
   campoAberto: {
     borderColor: input.bordaCorFocado,
     borderWidth: input.bordaEspessuraFocado,
+  },
+  erroTexto: {
+    color: cores.destrutivo,
+    fontSize: tipografia.tamanhoPq,
+    fontFamily: tipografia.inter.regular,
   },
   dropdown: {
     borderRadius: borda.md,

@@ -9,6 +9,7 @@ interface InputProps {
   valor?: string;
   aoMudar?: (texto: string) => void;
   seguro?: boolean;
+  erro?: string;
 }
 
 export default function Input(props: InputProps) {
@@ -49,6 +50,7 @@ export default function Input(props: InputProps) {
           </TouchableOpacity>
         )}
       </View>
+      {props.erro && <Text style={estilos.erroTexto}>{props.erro}</Text>}
     </View>
   );
 }
@@ -88,5 +90,10 @@ const estilos = StyleSheet.create({
     right: input.paddingHorizontal,
     top: '50%',
     transform: [{ translateY: -10 }], // Centraliza verticalmente (metade do tamanho do ícone)
+  },
+  erroTexto: {
+    color: cores.destrutivo,
+    fontSize: tipografia.tamanhoPq,
+    fontFamily: tipografia.inter.regular,
   },
 });
