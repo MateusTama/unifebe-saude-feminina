@@ -54,7 +54,7 @@ export default function Cadastro() {
 
     const handleContinuar = () => {
         if (validarFormulario()) {
-            router.replace('/');
+            router.replace('/home');
         }
     };
 
@@ -150,7 +150,7 @@ export default function Cadastro() {
                 />
 
                 <View style={estilos.rodape}>
-                    <Text style={estilos.textoRodape}>Não tem uma conta? </Text>
+                    <Text style={estilos.textoRodape}>Já tem uma conta? </Text>
                     <TouchableOpacity onPress={() => router.push('/login')}>
                         <Text style={estilos.linkRodape}>Entrar</Text>
                     </TouchableOpacity>
