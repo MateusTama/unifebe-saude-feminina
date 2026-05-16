@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { StyleSheet, View, ScrollView, Text, TouchableOpacity } from "react-native";
-import { Link } from "expo-router";
+import { Link, router, useRouter } from "expo-router";
 import HeroSection from "./components/HeroSection";
 import tema from "./styles/theme";
 import Input from "./components/Input";
@@ -20,6 +20,8 @@ export default function Cadastro() {
     const [notificacoes, setNotificacoes] = useState(false);
     const [compartilharDados, setCompartilharDados] = useState(false);
     const [erros, setErros] = useState<{ [key: string]: string }>({});
+
+    const router = useRouter();
 
     const validarFormulario = () => {
         const novosErros: { [key: string]: string } = {};
@@ -52,7 +54,7 @@ export default function Cadastro() {
 
     const handleContinuar = () => {
         if (validarFormulario()) {
-            console.log("Formulário válido, pode avançar!");
+            router.replace('/');
         }
     };
 
@@ -148,12 +150,10 @@ export default function Cadastro() {
                 />
 
                 <View style={estilos.rodape}>
-                    <Text style={estilos.textoRodape}>Já tem uma conta? </Text>
-                    <Link href="/" asChild>
-                        <TouchableOpacity>
-                            <Text style={estilos.linkRodape}>Entrar</Text>
-                        </TouchableOpacity>
-                    </Link>
+                    <Text style={estilos.textoRodape}>Não tem uma conta? </Text>
+                    <TouchableOpacity onPress={() => router.push('/login')}>
+                        <Text style={estilos.linkRodape}>Entrar</Text>
+                    </TouchableOpacity>
                 </View>
 
             </ScrollView>
