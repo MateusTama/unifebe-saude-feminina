@@ -33,7 +33,7 @@ export default function Login() {
     const handleEntrar = () => {
         if (validarFormulario()) {
             if (email === 'admin' && senha === 'admin') {
-                router.replace('/home');
+                router.replace('/');
             } else {
                 setLoginInvalido(true);
             }
