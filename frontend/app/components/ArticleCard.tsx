@@ -1,5 +1,5 @@
-import { View, Text, StyleSheet } from 'react-native';
-import { cores, tipografia, espacamento, borda, sombra } from '../styles/theme';
+import { StyleSheet, Text, View } from 'react-native';
+import { borda, cores, espacamento, sombra, tipografia } from '../styles/theme';
 import Chip from './Chip';
 import LikeButton from './LikeButton';
 
@@ -19,12 +19,11 @@ interface CardArtigoProps {
 }
 
 export default function ArticleCard({ artigo, curtido, aoAlternarCurtida }: CardArtigoProps) {
-  // Exibe até 3 palavras-chave
   const palavrasExibidas = artigo.palavrasChave.slice(0, 3);
 
   return (
     <View style={estilos.card}>
-      {/* Cabeçalho: título e botão de curtir na mesma linha */}
+      {/* Linha principal: título + curtir */}
       <View style={estilos.cabecalho}>
         <Text style={estilos.titulo} numberOfLines={2} ellipsizeMode="tail">
           {artigo.titulo}
@@ -60,7 +59,6 @@ const estilos = StyleSheet.create({
   },
   cabecalho: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: espacamento.pq,
     gap: espacamento.pq,

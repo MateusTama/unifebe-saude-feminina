@@ -20,7 +20,7 @@ type ItemTab = {
 };
 
 const TABS: ItemTab[] = [
-  { label: 'Home',      rota: '/',          icone: 'home'            },
+  { label: 'Home',      rota: '/home',       icone: 'home'            },
   { label: 'Buscar',    rota: '/buscar',     icone: 'search'          },
   { label: 'Diário',    rota: '/diario',     icone: 'menu-book'       },
   { label: 'Favoritos', rota: '/favoritos',  icone: 'favorite-border' },
@@ -33,8 +33,7 @@ export default function BottomNavBar() {
   const insets = useSafeAreaInsets();
 
   const estaAtivo = (rota: string): boolean => {
-    if (rota === '/') return pathname === '/';
-    return pathname.startsWith(rota);
+    return pathname === rota;
   };
 
   return (
