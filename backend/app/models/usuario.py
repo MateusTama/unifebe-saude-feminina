@@ -4,7 +4,7 @@ from app.models.enums import PerfilUsuarioEnum
 
 
 class Usuario(db.Model):
-    __tablename__ = 'Usuario'
+    __tablename__ = 'usuario'
 
     id = db.Column(db.Integer, primary_key=True)
     nome = db.Column(db.String(100), nullable=False)
@@ -16,7 +16,7 @@ class Usuario(db.Model):
     data_cadastro = db.Column(db.DateTime(timezone=True), server_default=db.func.current_timestamp(), nullable=False)
     data_alteracao = db.Column(db.DateTime(timezone=True))
     perfil = db.Column(
-        ENUM(PerfilUsuarioEnum, name='enum_usuario_perfil', create_type=False),
+        ENUM(PerfilUsuarioEnum, name='enum_usuario_perfil', create_type=False, values_callable=lambda x: [e.value for e in x]),
         default=PerfilUsuarioEnum.USUARIO
     )
     permite_notificacao = db.Column(db.Boolean, default=True)
