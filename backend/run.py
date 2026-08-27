@@ -1,4 +1,5 @@
 from flask import Flask
+import os
 from config import Config
 from app.models import db
 from app.routes.usuario import usuario_bp
@@ -21,4 +22,7 @@ def index():
     return {"mensagem": "API rodando"}
 
 if __name__ == '__main__':
-    app.run(port=5000, debug=True)
+    host = os.environ.get("HOST", "127.0.0.1")
+    porta = int(os.environ.get("PORT", 5000))
+    debug = os.environ.get("FLASK_DEBUG", "False").lower() == "true"
+    app.run(host=host, port=porta, debug=debug)
