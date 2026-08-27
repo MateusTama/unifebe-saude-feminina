@@ -1,4 +1,6 @@
 from sqlalchemy.dialects.postgresql import ENUM
+from sqlalchemy.orm import validates
+from werkzeug.security import generate_password_hash
 from app.models import db
 from app.models.enums import PerfilUsuarioEnum
 
@@ -22,3 +24,27 @@ class Usuario(db.Model):
     permite_notificacao = db.Column(db.Boolean, default=True)
     permite_compartilhar_dados = db.Column(db.Boolean, default=False)
     sexo = db.Column(db.String(1), default='F')
+
+    @validates('nome')
+    def validate_nome(self, key, value):
+        if not value or not value.strip():
+            raise ValueError("O campo nome e obrigatorio")
+        return value.strip()
+
+    @validates('email')
+    def validate_email(self, key, value):
+        if not value or "@" not in value:
+            raise ValueError("Email invalido")
+        email_limpo = value.strip().lower()
+        existing = Usuario.query.filter_by(email=email_limpo).first()
+        if existing and existing.id != self.id:
+            raise ValueError("Email ja cadastrado")
+        return email_limpo
+
+    @validates('senha')
+    def validate_senha(self, key, value):
+        if not value:
+            raise ValueError("O campo senha e obrigatorio")
+        if value.startswith(('pbkdf2:', 'scrypt:', 'bcrypt:')):
+            return value
+        return generate_password_hash(value)
