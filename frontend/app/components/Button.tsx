@@ -67,7 +67,7 @@ export default function Button({
         <ActivityIndicator color={corAtual} />
       ) : (
         // Layout interno: ícone esquerdo · texto · seta direita (só em "lista")
-        <View style={estilos.linha}>
+        <View style={[estilos.linha, variante !== 'lista' && estilos.linhaCentralizada]}>
           {icone && (
             <MaterialIcons
               name={icone}
@@ -131,7 +131,7 @@ const estilos = StyleSheet.create({
     backgroundColor: cores.branco,
     borderWidth: 1,
     borderColor: cores.borda,
-    alignItems: 'stretch',
+    alignItems: 'center',
   },
   tracejado: {
     // Fundo rosado claro (destaque da cor secundária)
@@ -152,6 +152,9 @@ const estilos = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
+  linhaCentralizada: {
+    justifyContent: 'center',
+  },
   iconeEsquerdo: {
     marginRight: espacamento.pq,
   },
@@ -165,10 +168,10 @@ const estilos = StyleSheet.create({
   },
 
   // Ajustes de peso por variante (cor é aplicada inline via corAtual)
-  texto_primario:   { fontFamily: tipografia.outfit.semibold },
-  texto_secundario: { fontFamily: tipografia.outfit.semibold },
-  texto_fantasma:   { fontFamily: tipografia.outfit.semibold },
+  texto_primario:   { fontFamily: tipografia.inter.semibold },
+  texto_secundario: { fontFamily: tipografia.inter.semibold },
+  texto_fantasma:   { fontFamily: tipografia.inter.semibold },
   texto_lista:      { fontFamily: tipografia.inter.medio },
   texto_destrutivo: { fontFamily: tipografia.inter.medio },
-  texto_tracejado:  { fontFamily: tipografia.outfit.semibold },
+  texto_tracejado:  { fontFamily: tipografia.inter.semibold },
 });

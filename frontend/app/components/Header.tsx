@@ -4,22 +4,45 @@ import tema from '../styles/theme';
 
 interface HeaderProps {
   nome?: string;
-  editando: boolean;
-  aoClicarIcone: () => void;
+  editando?: boolean;
+  aoClicarIcone?: () => void;
   ocultarIcone?: boolean;
+  mostrarVoltar?: boolean;
+  aoVoltar?: () => void;
+  iconeDireita?: React.ComponentProps<typeof MaterialIcons>['name'];
+  corIconeDireita?: string;
 }
 
 export default function Header(props: HeaderProps) {
+  const nomeIconeDireita = props.iconeDireita
+    ? props.iconeDireita
+    : props.editando
+    ? 'close'
+    : 'edit';
+
+  const corIcone = props.corIconeDireita
+    ? props.corIconeDireita
+    : props.editando
+    ? tema.cores.textoPrincipal
+    : tema.cores.primaria;
+
   return (
     <View style={estilos.container}>
-      <Text style={estilos.titulo}>{props.nome ?? 'VidaFem'}</Text>
+      <View style={estilos.ladoEsquerdo}>
+        {props.mostrarVoltar && (
+          <TouchableOpacity onPress={props.aoVoltar} style={estilos.botaoVoltar}>
+            <MaterialIcons name="arrow-back" size={24} color={tema.cores.textoPrincipal} />
+          </TouchableOpacity>
+        )}
+        <Text style={estilos.titulo}>{props.nome ?? 'VidaFem'}</Text>
+      </View>
 
-      {!props.ocultarIcone && (
+      {!props.ocultarIcone && props.aoClicarIcone && (
         <TouchableOpacity onPress={props.aoClicarIcone}>
           <MaterialIcons
-            name={props.editando ? 'close' : 'edit'}
-            size={20}
-            color={props.editando ? tema.cores.textoPrincipal : tema.cores.primaria}
+            name={nomeIconeDireita}
+            size={props.iconeDireita ? 28 : 20}
+            color={corIcone}
           />
         </TouchableOpacity>
       )}
@@ -38,9 +61,18 @@ const estilos = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
+  ladoEsquerdo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: tema.espacamento.md,
+  },
+  botaoVoltar: {
+    padding: 2,
+  },
   titulo: {
     fontSize: tema.tipografia.tamanhoXg,
     fontFamily: tema.tipografia.outfit.negrito,
     color: tema.cores.textoPrincipal,
   },
 });
+

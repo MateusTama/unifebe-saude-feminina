@@ -1,28 +1,23 @@
-import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { useState } from 'react';
+import { useMemo } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ArticleCard, { Artigo } from './components/ArticleCard';
 import Badge from './components/Badge';
 import Alert from './components/Alert';
 import BottomNavBar from './components/BottomNavBar';
-import Card from './components/Card';
-import { borda, cores, espacamento, sombra, tipografia } from './styles/theme';
-
-interface Tema {
-  id: string;
-  nome: string;
-  icone: React.ComponentProps<typeof MaterialIcons>['name'];
-  corIcone: string;
-}
-
-const TEMAS_DESTAQUE: Tema[] = [
-  { id: '1', nome: 'Menstruação',  icone: 'water-drop',       corIcone: cores.secundaria },
-  { id: '2', nome: 'Gravidez',     icone: 'pregnant-woman',   corIcone: cores.primaria   },
-  { id: '3', nome: 'Saúde Mental', icone: 'psychology',       corIcone: cores.primaria   },
-  { id: '4', nome: 'ISTs',         icone: 'health-and-safety', corIcone: cores.primaria  },
-  { id: '5', nome: 'Menopausa',    icone: 'self-improvement', corIcone: cores.secundaria },
-];
+import InfoList from './components/InfoList';
+import { useFavoritos } from './context/FavoritosContext';
+import { useDiario } from './context/DiarioContext';
+import {
+  calcularDuracaoMedia,
+  calcularJanelaFertil,
+  calcularProximaMenstruacao,
+  calcularRegularidade,
+  formatarDataCurta,
+  formatarJanelaFertil,
+  obterUltimoCicloInicio,
+} from './services/calculoCiclo';
+import { cores, espacamento, tipografia } from './styles/theme';
 
 const ARTIGOS_RECOMENDADOS: Artigo[] = [
   {
@@ -74,19 +69,54 @@ const ARTIGOS_RECOMENDADOS: Artigo[] = [
 
 export default function Home() {
   const insets = useSafeAreaInsets();
-  const [curtidos, setCurtidos] = useState<Set<string>>(new Set());
+  const { alternarFavorito, eFavorito } = useFavoritos();
+  const { ciclos } = useDiario();
 
-  const alternarCurtida = (id: string) => {
-    setCurtidos((prev) => {
-      const novo = new Set(prev);
-      if (novo.has(id)) {
-        novo.delete(id);
-      } else {
-        novo.add(id);
-      }
-      return novo;
+  const duracaoMedia = useMemo(() => calcularDuracaoMedia(ciclos), [ciclos]);
+  const regularidade = useMemo(() => calcularRegularidade(ciclos), [ciclos]);
+  const proximaMenstruacao = useMemo(() => calcularProximaMenstruacao(ciclos), [ciclos]);
+  const janelaFertil = useMemo(() => calcularJanelaFertil(ciclos), [ciclos]);
+  const ultimoCicloInicio = useMemo(() => obterUltimoCicloInicio(ciclos), [ciclos]);
+
+  const itensCiclo = useMemo(() => {
+    const itens = [];
+
+    itens.push({
+      emoji: '🔴',
+      rotulo: 'Último ciclo',
+      valor: ultimoCicloInicio ? formatarDataCurta(ultimoCicloInicio) : 'Sem registro',
+      destaque: !!ultimoCicloInicio,
     });
-  };
+
+    itens.push({
+      emoji: '📅',
+      rotulo: 'Próxima menstruação',
+      valor: proximaMenstruacao ? formatarDataCurta(proximaMenstruacao) : 'Sem dados',
+    });
+
+    itens.push({
+      emoji: '⏱️',
+      rotulo: 'Duração média',
+      valor: `${duracaoMedia} dias`,
+    });
+
+    itens.push({
+      emoji: '📊',
+      rotulo: 'Regularidade',
+      valor: regularidade
+        ? `${regularidade} ${regularidade === 'Regular' ? '✅' : '⚠️'}`
+        : 'Sem dados',
+      destaque: regularidade === 'Regular',
+    });
+
+    itens.push({
+      emoji: '🌱',
+      rotulo: 'Período fértil',
+      valor: janelaFertil ? formatarJanelaFertil(janelaFertil) : 'Sem dados',
+    });
+
+    return itens;
+  }, [ultimoCicloInicio, proximaMenstruacao, duracaoMedia, regularidade, janelaFertil]);
 
   return (
     <View style={estilos.container}>
@@ -94,7 +124,7 @@ export default function Home() {
         style={estilos.scroll}
         contentContainerStyle={[
           estilos.conteudo,
-          { paddingTop: insets.top + espacamento.md },
+          { paddingTop: insets.top + espacamento.md, paddingBottom: espacamento.xg },
         ]}
         showsVerticalScrollIndicator={false}
       >
@@ -103,24 +133,23 @@ export default function Home() {
           <Badge rotulo="Vida adulta" variante="primaria" />
         </View>
 
-        <View style={estilos.secao}>
-          <Text style={estilos.secaoTitulo}>Temas em destaque</Text>
-          <View style={estilos.gradeDestaque}>
-            {TEMAS_DESTAQUE.map((tema) => (
-              <Card key={tema.id} nome={tema.nome} icone={tema.icone} corIcone={tema.corIcone} />
-            ))}
-          </View>
+        {/* ── SEÇÃO: Seu ciclo ── */}
+        <View style={estilos.secaoCiclo}>
+          <Text style={estilos.secaoTitulo}>Seu ciclo</Text>
+          <InfoList itens={itensCiclo} style={{ marginBottom: 0 }} />
         </View>
 
+        {/* ── SEÇÃO: Artigos recomendados para você ── */}
         <View style={estilos.secao}>
-          <Text style={estilos.secaoTitulo}>Recomendados para você</Text>
+          <Text style={estilos.secaoTitulo}>Artigos recomendados para você</Text>
+
           <View style={estilos.listaArtigos}>
             {ARTIGOS_RECOMENDADOS.map((artigo) => (
               <ArticleCard
                 key={artigo.id}
                 artigo={artigo}
-                curtido={curtidos.has(artigo.id)}
-                aoAlternarCurtida={() => alternarCurtida(artigo.id)}
+                curtido={eFavorito(artigo.id)}
+                aoAlternarCurtida={() => alternarFavorito(artigo)}
               />
             ))}
           </View>
@@ -160,27 +189,17 @@ const estilos = StyleSheet.create({
   secao: {
     marginBottom: espacamento.gd,
   },
+  secaoCiclo: {
+    marginBottom: espacamento.gd,
+  },
   secaoTitulo: {
     fontSize: tipografia.tamanhoGd,
     fontFamily: tipografia.outfit.semibold,
     color: cores.textoPrincipal,
     marginBottom: espacamento.pq,
   },
-  subsecaoRotulo: {
-    fontSize: tipografia.tamanhoXp,
-    fontFamily: tipografia.inter.semibold,
-    color: cores.primaria,
-    letterSpacing: 0.8,
-    marginBottom: espacamento.pq,
-  },
 
-  gradeDestaque: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: espacamento.pq,
-  },
   listaArtigos: {
     gap: espacamento.md,
   },
-
 });

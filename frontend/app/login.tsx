@@ -96,9 +96,10 @@ const estilos = StyleSheet.create({
         flex: 1,
     },
     formulario: {
-        padding: tema.espacamento.md,
+        paddingHorizontal: tema.espacamento.md,
+        paddingTop: tema.espacamento.md,
+        paddingBottom: tema.espacamento.xg,
         gap: tema.espacamento.md,
-        paddingBottom: tema.espacamento.xxg, // 48, substituindo o antigo 40 para ficar no padrão
     },
     rodape: {
         flexDirection: 'row',

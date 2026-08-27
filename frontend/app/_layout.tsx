@@ -1,4 +1,4 @@
-﻿import {
+import {
   Inter_400Regular,
   Inter_500Medium,
   Inter_600SemiBold,
@@ -13,7 +13,11 @@ import {
 } from '@expo-google-fonts/outfit';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
+import { Platform } from 'react-native';
 import { useEffect } from 'react';
+
+import { FavoritosProvider } from './context/FavoritosContext';
+import { DiarioProvider } from './context/DiarioContext';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -34,6 +38,12 @@ export default function RootLayout() {
   const fontsLoaded = interLoaded && outfitLoaded;
 
   useEffect(() => {
+    if (Platform.OS === 'web' && typeof document !== 'undefined') {
+      document.documentElement.lang = 'pt-BR';
+    }
+  }, []);
+
+  useEffect(() => {
     if (fontsLoaded) {
       SplashScreen.hideAsync();
     }
@@ -42,11 +52,15 @@ export default function RootLayout() {
   if (!fontsLoaded) return null;
 
   return (
-    <Stack
-      screenOptions={{
-        headerShown: false,
-        contentStyle: { backgroundColor: '#fff' },
-      }}
-    />
+    <FavoritosProvider>
+      <DiarioProvider>
+        <Stack
+          screenOptions={{
+            headerShown: false,
+            contentStyle: { backgroundColor: '#fff' },
+          }}
+        />
+      </DiarioProvider>
+    </FavoritosProvider>
   );
 }

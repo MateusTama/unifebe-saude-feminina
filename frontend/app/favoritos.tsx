@@ -5,10 +5,11 @@ import BottomNavBar from './components/BottomNavBar';
 import ArticleCard, { Artigo } from './components/ArticleCard';
 import { cores, tipografia, espacamento } from './styles/theme';
 
-const ARTIGOS_FAVORITOS: Artigo[] = [];
+import { useFavoritos } from './context/FavoritosContext';
 
 export default function TelaFavoritos() {
-  const semFavoritos = ARTIGOS_FAVORITOS.length === 0;
+  const { favoritos, alternarFavorito, eFavorito } = useFavoritos();
+  const semFavoritos = favoritos.length === 0;
 
   return (
     <View style={estilos.container}>
@@ -24,14 +25,14 @@ export default function TelaFavoritos() {
         </View>
       ) : (
         <FlatList
-          data={ARTIGOS_FAVORITOS}
+          data={favoritos}
           keyExtractor={(item) => item.id}
           contentContainerStyle={estilos.lista}
           renderItem={({ item }) => (
             <ArticleCard
               artigo={item}
-              curtido
-              aoAlternarCurtida={() => {}}
+              curtido={eFavorito(item.id)}
+              aoAlternarCurtida={() => alternarFavorito(item)}
             />
           )}
           ItemSeparatorComponent={() => <View style={estilos.separador} />}

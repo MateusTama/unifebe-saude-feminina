@@ -4,7 +4,8 @@ import { borda, cores, espacamento, sombra, tipografia } from '../styles/theme';
 
 interface CardProps {
   nome: string;
-  icone: React.ComponentProps<typeof MaterialIcons>['name'];
+  icone?: React.ComponentProps<typeof MaterialIcons>['name'];
+  emoji?: string;
   corIcone?: string;
   aoPress?: () => void;
   /** Valor em destaque exibido abaixo do nome (ex: "28 dias") */
@@ -16,6 +17,7 @@ interface CardProps {
 export default function Card({
   nome,
   icone,
+  emoji,
   corIcone = cores.primaria,
   aoPress,
   valor,
@@ -34,10 +36,14 @@ export default function Card({
       onPress={aoPress}
     >
       {temValor ? (
-        // Layout de estatística: ícone + rótulo em cima, valor em baixo
+        // Layout de estatística: ícone/emoji + rótulo em cima, valor em baixo
         <>
           <View style={estilos.topo}>
-            <MaterialIcons name={icone} size={16} color={cores.mutedForeground} />
+            {emoji ? (
+              <Text style={estilos.emojiTopo}>{emoji}</Text>
+            ) : icone ? (
+              <MaterialIcons name={icone} size={16} color={cores.mutedForeground} />
+            ) : null}
             <Text style={estilos.rotulo}>{nome}</Text>
           </View>
           <Text style={[estilos.valor, destaque && estilos.valorDestaque]}>{valor}</Text>
@@ -45,7 +51,7 @@ export default function Card({
       ) : (
         // Layout original: ícone grande + nome centralizado
         <>
-          <MaterialIcons name={icone} size={32} color={corIcone} />
+          {icone && <MaterialIcons name={icone} size={32} color={corIcone} />}
           <Text style={estilos.nome}>{nome}</Text>
         </>
       )}
@@ -66,7 +72,6 @@ const estilos = StyleSheet.create({
     borderColor: cores.borda,
     ...sombra.pq,
   },
-  // Quando usado como card de estatística: ocupa metade da linha, sem aspect ratio fixo
   containerEstatistica: {
     width: undefined,
     aspectRatio: undefined,
@@ -75,21 +80,23 @@ const estilos = StyleSheet.create({
     padding: espacamento.md,
   },
   containerDestaque: {
-    backgroundColor: cores.destaque,
-    borderColor: cores.primaria,
+    backgroundColor: '#F4EFFF',
+    borderColor: '#E5DBFF',
   },
-  // Layout original
   nome: {
     fontSize: tipografia.tamanhoPq,
     fontFamily: tipografia.inter.medio,
     color: cores.textoPrincipal,
     textAlign: 'center',
   },
-  // Layout estatística
   topo: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 6,
+    marginBottom: 4,
+  },
+  emojiTopo: {
+    fontSize: 14,
   },
   rotulo: {
     fontSize: tipografia.tamanhoXp,
@@ -102,8 +109,10 @@ const estilos = StyleSheet.create({
     fontSize: tipografia.tamanhoGd,
     fontFamily: tipografia.outfit.semibold,
     color: cores.textoPrincipal,
+    marginTop: 2,
   },
   valorDestaque: {
-    color: cores.primaria,
+    color: cores.textoDestaque,
+    fontFamily: tipografia.outfit.negrito,
   },
 });

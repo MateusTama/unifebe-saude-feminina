@@ -40,7 +40,7 @@ export default function ArticleCard({ artigo, curtido, aoAlternarCurtida }: Card
       {palavrasExibidas.length > 0 && (
         <View style={estilos.containerPalavras}>
           {palavrasExibidas.map((palavra, indice) => (
-            <Chip key={indice} rotulo={palavra} />
+            <Chip key={indice} rotulo={palavra} ativo />
           ))}
         </View>
       )}

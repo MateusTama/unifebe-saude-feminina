@@ -138,11 +138,13 @@ export function filtrarArtigosPorBusca(artigos: Artigo[], busca: string): Artigo
   });
 }
 
+import { useFavoritos } from './context/FavoritosContext';
+
 export default function TelaBuscarArtigos() {
   const [busca, setBusca] = useState('');
   const [temaSelecionado, setTemaSelecionado] = useState<string | null>(null);
   const [palavrasSelecionadas, setPalavrasSelecionadas] = useState<Set<string>>(new Set());
-  const [artigosCurtidos, setArtigosCurtidos] = useState<Set<string>>(new Set());
+  const { alternarFavorito, eFavorito } = useFavoritos();
 
   // Artigos filtrados em tempo real com base na busca
   const artigosFiltrados = useMemo(
@@ -162,18 +164,6 @@ export default function TelaBuscarArtigos() {
     });
   };
 
-  const alternarCurtida = (idArtigo: string) => {
-    setArtigosCurtidos((anterior) => {
-      const proximo = new Set(anterior);
-      if (proximo.has(idArtigo)) {
-        proximo.delete(idArtigo);
-      } else {
-        proximo.add(idArtigo);
-      }
-      return proximo;
-    });
-  };
-
   return (
     <View style={estilos.container}>
       <Header nome="Buscar Artigos" editando={false} aoClicarIcone={() => {}} ocultarIcone />
@@ -184,7 +174,7 @@ export default function TelaBuscarArtigos() {
         keyboardShouldPersistTaps="handled"
       >
         {/* Campo de busca */}
-        <View style={[estilos.secao, { zIndex: 30 }]}>
+        <View style={[estilos.campoBusca, { zIndex: 30 }]}>
           <Input
             placeholder="Buscar artigos..."
             valor={busca}
@@ -221,7 +211,7 @@ export default function TelaBuscarArtigos() {
         </View>
 
         {/* Lista de artigos */}
-        <View style={[estilos.secao, { zIndex: 1 }]}>
+        <View style={[estilos.secaoUltima, { zIndex: 1 }]}>
           {artigosFiltrados.length === 0 && busca !== '' ? (
             <View style={estilos.estadoVazio}>
               <MaterialIcons name="search-off" size={48} color={cores.mutedForeground} />
@@ -234,8 +224,8 @@ export default function TelaBuscarArtigos() {
               renderItem={({ item }) => (
                 <ArticleCard
                   artigo={item}
-                  curtido={artigosCurtidos.has(item.id)}
-                  aoAlternarCurtida={() => alternarCurtida(item.id)}
+                  curtido={eFavorito(item.id)}
+                  aoAlternarCurtida={() => alternarFavorito(item)}
                 />
               )}
               scrollEnabled={false}
@@ -263,14 +253,20 @@ const estilos = StyleSheet.create({
     paddingTop: espacamento.md,
     paddingBottom: espacamento.xg,
   },
+  campoBusca: {
+    marginBottom: espacamento.md,
+  },
   secao: {
-    marginTop: espacamento.md,
+    marginBottom: espacamento.gd,
+  },
+  secaoUltima: {
+    marginBottom: 0,
   },
   tituloSecao: {
-    fontSize: tipografia.tamanhoMd,
-    fontFamily: tipografia.outfit.medio,
+    fontSize: tipografia.tamanhoGd,
+    fontFamily: tipografia.outfit.semibold,
     color: cores.textoPrincipal,
-    marginBottom: espacamento.md,
+    marginBottom: espacamento.pq,
   },
   containerPalavras: {
     flexDirection: 'row',

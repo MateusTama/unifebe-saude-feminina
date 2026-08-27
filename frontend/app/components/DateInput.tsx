@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TextInput } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { cores, tipografia, espacamento, input } from '../styles/theme';
@@ -11,15 +11,21 @@ type DateInputProps = {
 };
 
 export default function DateInput({ rotulo, valor, aoMudar, erro }: DateInputProps) {
-  const [texto, setTexto] = useState('');
-  const [focado, setFocado] = useState(false);
-
   const formatarData = (data: Date) => {
     const dia = String(data.getDate()).padStart(2, '0');
     const mes = String(data.getMonth() + 1).padStart(2, '0');
     const ano = data.getFullYear();
     return `${dia}/${mes}/${ano}`;
   };
+
+  const [texto, setTexto] = useState(valor ? formatarData(valor) : '');
+  const [focado, setFocado] = useState(false);
+
+  useEffect(() => {
+    if (valor) {
+      setTexto(formatarData(valor));
+    }
+  }, [valor]);
 
   const aplicarMascara = (valor: string) => {
     const numeros = valor.replace(/\D/g, '');
@@ -59,8 +65,6 @@ export default function DateInput({ rotulo, valor, aoMudar, erro }: DateInputPro
     validarEConverterData(textoFormatado);
   };
 
-  const textoExibido = valor && !texto ? formatarData(valor) : texto;
-
   return (
     <View style={estilos.container}>
       {rotulo && <Text style={estilos.rotulo}>{rotulo}</Text>}
@@ -71,7 +75,7 @@ export default function DateInput({ rotulo, valor, aoMudar, erro }: DateInputPro
                 outlineStyle: 'none',
             } as any
           ]}
-          value={textoExibido}
+          value={texto}
           onChangeText={handleChangeText}
           placeholder="DD/MM/AAAA"
           placeholderTextColor={input.corPlaceholder}

@@ -170,9 +170,10 @@ const estilos = StyleSheet.create({
         flex: 1,
     },
     formulario: {
-        padding: 16,
-        gap: 16,
-        paddingBottom: 40,
+        paddingHorizontal: tema.espacamento.md,
+        paddingTop: tema.espacamento.md,
+        paddingBottom: tema.espacamento.xg,
+        gap: tema.espacamento.md,
     },
     rodape: {
         flexDirection: 'row',

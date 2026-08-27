@@ -3,10 +3,10 @@ import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { borda, cores, espacamento, sombra, tipografia } from '../styles/theme';
 
 // ---------------------------------------------------------------------------
-// Tipos exportados (reutilizáveis por quem importar o componente)
+// Tipos exportados
 // ---------------------------------------------------------------------------
 
-export type TipoDia = 'menstruacao' | 'fertil' | 'ovulacao' | 'normal';
+export type TipoDia = 'menstruacao' | 'previsao' | 'fertil' | 'ovulacao' | 'sintomas' | 'normal';
 
 export interface DadosDia {
   tipo: TipoDia;
@@ -37,7 +37,7 @@ export interface CalendarioMenstrualProps {
 // Helpers internos
 // ---------------------------------------------------------------------------
 
-const DIAS_SEMANA = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB'];
+const DIAS_SEMANA = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
 
 const NOMES_MESES = [
   'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
@@ -45,7 +45,7 @@ const NOMES_MESES = [
 ];
 
 function chaveData(ano: number, mes: number, dia: number): string {
-  return `${ano}-${mes}-${dia}`;
+  return `${ano}-${String(mes).padStart(2, '0')}-${String(dia).padStart(2, '0')}`;
 }
 
 function diasNoMes(ano: number, mes: number): number {
@@ -78,29 +78,25 @@ export default function CalendarioMenstrual({
   ];
   while (celulas.length % 7 !== 0) celulas.push(null);
 
-  const hoje = new Date();
-  const ehHoje = (dia: number) =>
-    dia === hoje.getDate() && mes === hoje.getMonth() + 1 && ano === hoje.getFullYear();
-
   return (
     <View style={estilos.container}>
       {/* Cabeçalho com navegação */}
       <View style={estilos.cabecalho}>
         <TouchableOpacity onPress={aoMesAnterior} style={estilos.botaoNav} activeOpacity={0.7}>
-          <MaterialIcons name="chevron-left" size={28} color={cores.textoPrincipal} />
+          <MaterialIcons name="chevron-left" size={24} color={cores.textoPrincipal} />
         </TouchableOpacity>
         <Text style={estilos.tituloCabecalho}>
           {NOMES_MESES[mes - 1]} {ano}
         </Text>
         <TouchableOpacity onPress={aoProximoMes} style={estilos.botaoNav} activeOpacity={0.7}>
-          <MaterialIcons name="chevron-right" size={28} color={cores.textoPrincipal} />
+          <MaterialIcons name="chevron-right" size={24} color={cores.textoPrincipal} />
         </TouchableOpacity>
       </View>
 
       {/* Dias da semana */}
       <View style={estilos.linhaSemana}>
-        {DIAS_SEMANA.map((d) => (
-          <Text key={d} style={estilos.labelSemana}>{d}</Text>
+        {DIAS_SEMANA.map((d, i) => (
+          <Text key={i} style={estilos.labelSemana}>{d}</Text>
         ))}
       </View>
 
@@ -112,46 +108,43 @@ export default function CalendarioMenstrual({
           }
 
           const chave = chaveData(ano, mes, dia);
-          const tipo: TipoDia = registros[chave]?.tipo ?? 'normal';
+          const reg = registros[chave];
+          const tipo: TipoDia = reg?.tipo ?? 'normal';
+          const temSintomas =
+            (reg?.sintomas?.length ?? 0) > 0 || (reg?.observacao?.trim()?.length ?? 0) > 0;
           const selecionado = dia === diaSelecionado;
-          const diaHoje = ehHoje(dia);
 
           return (
-            <TouchableOpacity
-              key={chave}
-              style={estilos.celula}
-              onPress={() => aoSelecionarDia(dia)}
-              activeOpacity={0.7}
-            >
-              <View
+            <View key={chave} style={estilos.celula}>
+              <TouchableOpacity
                 style={[
-                  estilos.bolaDia,
-                  selecionado && estilos.bolaSelecionada,
-                  diaHoje && !selecionado && estilos.bolaHoje,
+                  estilos.blocoDia,
+                  selecionado && estilos.blocoSelecionado,
+                  !selecionado && tipo === 'menstruacao' && estilos.blocoMenstruacao,
+                  !selecionado && tipo === 'previsao' && estilos.blocoPrevisao,
+                  !selecionado && tipo === 'fertil' && estilos.blocoFertil,
+                  !selecionado && tipo === 'ovulacao' && estilos.blocoOvulacao,
                 ]}
+                onPress={() => aoSelecionarDia(dia)}
+                activeOpacity={0.7}
               >
                 <Text
                   style={[
                     estilos.textoDia,
                     selecionado && estilos.textoDiaSelecionado,
-                    diaHoje && !selecionado && estilos.textoDiaHoje,
+                    !selecionado && tipo === 'menstruacao' && estilos.textoMenstruacao,
+                    !selecionado && tipo === 'previsao' && estilos.textoPrevisao,
+                    !selecionado && tipo === 'fertil' && estilos.textoFertil,
+                    !selecionado && tipo === 'ovulacao' && estilos.textoOvulacao,
                   ]}
                 >
                   {dia}
                 </Text>
-              </View>
-
-              {tipo !== 'normal' && (
-                <View
-                  style={[
-                    estilos.indicador,
-                    tipo === 'menstruacao' && estilos.indicadorMenstruacao,
-                    tipo === 'fertil'      && estilos.indicadorFertil,
-                    tipo === 'ovulacao'    && estilos.indicadorOvulacao,
-                  ]}
-                />
-              )}
-            </TouchableOpacity>
+                {temSintomas && !selecionado && (
+                  <View style={estilos.pontoSintoma} />
+                )}
+              </TouchableOpacity>
+            </View>
           );
         })}
       </View>
@@ -159,16 +152,24 @@ export default function CalendarioMenstrual({
       {/* Legenda */}
       <View style={estilos.legenda}>
         <View style={estilos.legendaItem}>
-          <View style={[estilos.legendaPonto, estilos.indicadorMenstruacao]} />
+          <View style={[estilos.legendaCaixa, { backgroundColor: '#FFE4E9' }]} />
           <Text style={estilos.legendaTexto}>Menstruação</Text>
         </View>
         <View style={estilos.legendaItem}>
-          <View style={[estilos.legendaPonto, estilos.indicadorFertil]} />
-          <Text style={estilos.legendaTexto}>Fértil</Text>
+          <View style={[estilos.legendaCaixa, estilos.legendaCaixaPrevisao]} />
+          <Text style={estilos.legendaTexto}>Previsão</Text>
         </View>
         <View style={estilos.legendaItem}>
-          <View style={[estilos.legendaPonto, estilos.indicadorOvulacao]} />
+          <View style={[estilos.legendaCaixa, { backgroundColor: '#DCFCE7' }]} />
+          <Text style={estilos.legendaTexto}>Período fértil</Text>
+        </View>
+        <View style={estilos.legendaItem}>
+          <View style={[estilos.legendaCaixa, { backgroundColor: '#A7F3D0' }]} />
           <Text style={estilos.legendaTexto}>Ovulação</Text>
+        </View>
+        <View style={estilos.legendaItem}>
+          <View style={estilos.legendaPontoSintoma} />
+          <Text style={estilos.legendaTexto}>Sintomas</Text>
         </View>
       </View>
     </View>
@@ -182,7 +183,7 @@ export default function CalendarioMenstrual({
 const estilos = StyleSheet.create({
   container: {
     backgroundColor: cores.branco,
-    borderRadius: borda.gd,
+    borderRadius: 20,
     borderWidth: 1,
     borderColor: cores.borda,
     padding: espacamento.md,
@@ -192,10 +193,11 @@ const estilos = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: espacamento.md,
+    marginBottom: espacamento.gd,
+    paddingHorizontal: espacamento.pq,
   },
   botaoNav: {
-    padding: espacamento.pq,
+    padding: espacamento.xp,
   },
   tituloCabecalho: {
     fontSize: tipografia.tamanhoGd,
@@ -204,88 +206,121 @@ const estilos = StyleSheet.create({
   },
   linhaSemana: {
     flexDirection: 'row',
-    marginBottom: espacamento.pq,
+    marginBottom: espacamento.md,
   },
   labelSemana: {
     flex: 1,
     textAlign: 'center',
-    fontSize: tipografia.tamanhoPq,
-    fontFamily: tipografia.inter.semibold,
+    fontSize: tipografia.tamanhoMd,
+    fontFamily: tipografia.inter.medio,
     color: cores.mutedForeground,
-    letterSpacing: 0.5,
   },
   grade: {
     flexDirection: 'row',
     flexWrap: 'wrap',
+    rowGap: 8,
   },
   celula: {
     width: `${100 / 7}%`,
     alignItems: 'center',
-    paddingVertical: 4,
-    gap: 3,
+    justifyContent: 'center',
+    paddingHorizontal: 2,
   },
-  bolaDia: {
-    width: 36,
-    height: 36,
-    borderRadius: borda.cheia,
+  blocoDia: {
+    width: '100%',
+    height: 44,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: 'transparent',
+    position: 'relative',
   },
-  bolaSelecionada: {
-    backgroundColor: cores.primaria,
+  blocoSelecionado: {
+    backgroundColor: '#8B5CF6',
   },
-  bolaHoje: {
-    borderWidth: 2,
-    borderColor: cores.primaria,
+  blocoMenstruacao: {
+    backgroundColor: '#FFE4E9',
+  },
+  blocoPrevisao: {
+    backgroundColor: '#FFF0F3',
+    borderWidth: 1.5,
+    borderColor: '#FDA4AF',
+    borderStyle: 'dashed',
+  },
+  blocoFertil: {
+    backgroundColor: '#DCFCE7',
+  },
+  blocoOvulacao: {
+    backgroundColor: '#A7F3D0',
   },
   textoDia: {
-    fontSize: tipografia.tamanhoMd,
+    fontSize: 15,
     fontFamily: tipografia.inter.regular,
     color: cores.textoPrincipal,
   },
   textoDiaSelecionado: {
     color: cores.branco,
+    fontFamily: tipografia.outfit.semibold,
+  },
+  textoMenstruacao: {
+    color: '#E11D48',
+    fontFamily: tipografia.inter.medio,
+  },
+  textoPrevisao: {
+    color: '#E11D48',
+    fontFamily: tipografia.inter.medio,
+  },
+  textoFertil: {
+    color: '#047857',
+    fontFamily: tipografia.inter.medio,
+  },
+  textoOvulacao: {
+    color: '#065F46',
     fontFamily: tipografia.inter.semibold,
   },
-  textoDiaHoje: {
-    color: cores.primaria,
-    fontFamily: tipografia.inter.semibold,
-  },
-  indicador: {
-    width: 6,
-    height: 6,
+  pontoSintoma: {
+    width: 5,
+    height: 5,
     borderRadius: 3,
+    backgroundColor: '#8B5CF6',
+    marginTop: 2,
   },
-  indicadorMenstruacao: {
-    backgroundColor: cores.secundaria,
-  },
-  indicadorFertil: {
-    backgroundColor: '#F5A623',
-  },
-  indicadorOvulacao: {
-    backgroundColor: cores.sucesso,
+  legendaPontoSintoma: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#8B5CF6',
+    marginHorizontal: 3,
   },
   legenda: {
     flexDirection: 'row',
-    justifyContent: 'center',
-    gap: espacamento.gd,
-    marginTop: espacamento.md,
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: espacamento.gd,
     paddingTop: espacamento.md,
     borderTopWidth: 1,
-    borderTopColor: cores.borda,
+    borderTopColor: '#F1F5F9',
+    gap: 8,
   },
   legendaItem: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
   },
-  legendaPonto: {
-    width: 8,
-    height: 8,
+  legendaCaixa: {
+    width: 14,
+    height: 14,
     borderRadius: 4,
   },
+  legendaCaixaPrevisao: {
+    backgroundColor: '#FFF0F3',
+    borderWidth: 1,
+    borderColor: '#FDA4AF',
+    borderStyle: 'dashed',
+  },
   legendaTexto: {
-    fontSize: tipografia.tamanhoPq,
+    fontSize: 12,
     fontFamily: tipografia.inter.regular,
     color: cores.mutedForeground,
   },
