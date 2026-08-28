@@ -21,6 +21,7 @@ def create_app(config_class=Config):
     db.init_app(app)
     JWTManager(app)
     CORS(app)
+    app.url_map.strict_slashes = False
 
     # Registro das Rotas da API Mobile
     app.register_blueprint(usuario_bp, url_prefix='/usuarios')
