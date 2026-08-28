@@ -13,6 +13,7 @@ from app.models.palavra_chave import PalavraChave
 from app.models.artigo import Artigo  # noqa: F401
 from app.models.artigo_palavra_chave import ArtigoPalavraChave
 from app.models.artigo_fase_vida import ArtigoFaseVida
+from app.models.artigo_favorito import ArtigoFavorito
 
 from app.models.sintoma import Sintoma
 from app.models.registro_diario import RegistroDiario

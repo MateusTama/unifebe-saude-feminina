@@ -7,6 +7,7 @@ from app.routes.admin import register_admin_blueprints
 from app.routes.usuario import usuario_bp
 from app.routes.fase_vida import fase_vida_bp
 from app.routes.lembrete import lembrete_bp
+from app.routes.artigo import artigo_bp
 
 
 def create_app(config_class=Config):
@@ -27,6 +28,7 @@ def create_app(config_class=Config):
     app.register_blueprint(usuario_bp, url_prefix='/usuarios')
     app.register_blueprint(fase_vida_bp, url_prefix='/fases-vida')
     app.register_blueprint(lembrete_bp, url_prefix='/lembretes')
+    app.register_blueprint(artigo_bp, url_prefix='/artigos')
 
     # Registro das Rotas do Backoffice Administrativo
     register_admin_blueprints(app)
