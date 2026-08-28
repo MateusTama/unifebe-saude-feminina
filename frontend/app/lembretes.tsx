@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   FlatList,
   Modal,
@@ -9,72 +9,89 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
-import Badge from './components/Badge';
 import Button from './components/Button';
 import Header from './components/Header';
 import { borda, cores, espacamento, tipografia } from './styles/theme';
+import { api } from './services/api';
 
 export interface Lembrete {
-  id: string;
+  id: number;
   titulo: string;
   descricao?: string;
   data: string;
   hora: string;
-  concluido: boolean;
 }
-
-const LEMBRETES_INICIAIS: Lembrete[] = [
-  {
-    id: '1',
-    titulo: 'Consulta ginecologista',
-    descricao: 'Consulta de rotina anual',
-    data: '2026-03-25',
-    hora: '14:00',
-    concluido: true,
-  },
-  {
-    id: '2',
-    titulo: 'Exame de Papanicolau',
-    descricao: 'Levar resultados anteriores',
-    data: '2026-04-10',
-    hora: '09:00',
-    concluido: true,
-  },
-  {
-    id: '3',
-    titulo: 'teste',
-    descricao: 'Observação do lembrete de teste',
-    data: '2026-09-03',
-    hora: '01:44',
-    concluido: false,
-  },
-];
 
 export default function TelaLembretes() {
   const router = useRouter();
-  const [lembretes, setLembretes] = useState<Lembrete[]>(LEMBRETES_INICIAIS);
+  const [lembretes, setLembretes] = useState<Lembrete[]>([]);
+  const [carregando, setCarregando] = useState(true);
+  const [salvando, setSalvando] = useState(false);
+  const [mensagemErro, setMensagemErro] = useState('');
+
   const [modalAberto, setModalAberto] = useState(false);
   const [modoModal, setModoModal] = useState<'criar' | 'editar'>('criar');
-  const [lembreteEditandoId, setLembreteEditandoId] = useState<string | null>(null);
+  const [lembreteEditandoId, setLembreteEditandoId] = useState<number | null>(null);
 
   // Formulário do modal
   const [titulo, setTitulo] = useState('');
   const [descricao, setDescricao] = useState('');
   const [data, setData] = useState('');
   const [hora, setHora] = useState('');
-  const [concluido, setConcluido] = useState(false);
+
+  useEffect(() => {
+    carregarLembretes();
+  }, []);
+
+  const carregarLembretes = async () => {
+    setCarregando(true);
+    try {
+      const resposta = await api('/lembretes/');
+      if (resposta?.lembretes && Array.isArray(resposta.lembretes)) {
+        // Filtra apenas lembretes com situacao == true se aplicável
+        const ativos = resposta.lembretes.filter((l: any) => l.situacao !== false);
+
+        const formatados: Lembrete[] = ativos.map((l: any) => {
+          let dataStr = new Date().toISOString().split('T')[0];
+          let horaStr = '08:00';
+
+          if (l.data_hora) {
+            const partes = l.data_hora.split('T');
+            if (partes.length >= 1 && partes[0]) dataStr = partes[0];
+            if (partes.length >= 2 && partes[1]) horaStr = partes[1].substring(0, 5);
+          }
+
+          return {
+            id: l.id,
+            titulo: l.titulo,
+            descricao: l.descricao || undefined,
+            data: dataStr,
+            hora: horaStr,
+          };
+        });
+
+        setLembretes(formatados);
+      }
+    } catch (erro: any) {
+      console.error('Erro ao carregar lembretes:', erro);
+    } finally {
+      setCarregando(false);
+    }
+  };
 
   const abrirModalCriar = () => {
+    const hoje = new Date().toISOString().split('T')[0];
     setTitulo('');
     setDescricao('');
-    setData(new Date().toISOString().split('T')[0]);
+    setData(hoje);
     setHora('08:00');
-    setConcluido(false);
     setModoModal('criar');
     setLembreteEditandoId(null);
+    setMensagemErro('');
     setModalAberto(true);
   };
 
@@ -83,59 +100,70 @@ export default function TelaLembretes() {
     setDescricao(lembrete.descricao ?? '');
     setData(lembrete.data);
     setHora(lembrete.hora);
-    setConcluido(lembrete.concluido);
     setModoModal('editar');
     setLembreteEditandoId(lembrete.id);
+    setMensagemErro('');
     setModalAberto(true);
   };
 
-  const alternarConcluidoRapido = (id: string) => {
-    setLembretes((atuais) =>
-      atuais.map((l) => (l.id === id ? { ...l, concluido: !l.concluido } : l))
-    );
-  };
-
-  const excluirLembrete = (id: string) => {
-    setLembretes((atuais) => atuais.filter((l) => l.id !== id));
-    if (modalAberto && lembreteEditandoId === id) {
-      setModalAberto(false);
+  const excluirLembrete = async (id: number) => {
+    try {
+      await api(`/lembretes/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify({ situacao: false }),
+      });
+      setLembretes((atuais) => atuais.filter((l) => l.id !== id));
+      if (modalAberto && lembreteEditandoId === id) {
+        setModalAberto(false);
+      }
+    } catch (erro: any) {
+      console.error('Erro ao excluir lembrete:', erro);
     }
   };
 
-  const salvarLembrete = () => {
-    if (!titulo.trim()) return;
+  const salvarLembrete = async () => {
+    if (!titulo.trim()) {
+      setMensagemErro('O título é obrigatório.');
+      return;
+    }
+
+    setSalvando(true);
+    setMensagemErro('');
 
     const dataFinal = data.trim() || new Date().toISOString().split('T')[0];
     const horaFinal = hora.trim() || '08:00';
+    const dataHoraIso = `${dataFinal}T${horaFinal}:00`;
 
-    if (modoModal === 'criar') {
-      const novo: Lembrete = {
-        id: Date.now().toString(),
-        titulo: titulo.trim(),
-        descricao: descricao.trim() || undefined,
-        data: dataFinal,
-        hora: horaFinal,
-        concluido: false,
-      };
-      setLembretes((atuais) => [novo, ...atuais]);
-    } else if (lembreteEditandoId) {
-      setLembretes((atuais) =>
-        atuais.map((l) =>
-          l.id === lembreteEditandoId
-            ? {
-                ...l,
-                titulo: titulo.trim(),
-                descricao: descricao.trim() || undefined,
-                data: dataFinal,
-                hora: horaFinal,
-                concluido,
-              }
-            : l
-        )
-      );
+    try {
+      if (modoModal === 'criar') {
+        await api('/lembretes/', {
+          method: 'POST',
+          body: JSON.stringify({
+            titulo: titulo.trim(),
+            descricao: descricao.trim() || undefined,
+            data_hora: dataHoraIso,
+            situacao: true,
+          }),
+        });
+      } else if (lembreteEditandoId) {
+        await api(`/lembretes/${lembreteEditandoId}`, {
+          method: 'PUT',
+          body: JSON.stringify({
+            titulo: titulo.trim(),
+            descricao: descricao.trim() || undefined,
+            data_hora: dataHoraIso,
+            situacao: true,
+          }),
+        });
+      }
+
+      await carregarLembretes();
+      setModalAberto(false);
+    } catch (erro: any) {
+      setMensagemErro(erro.message || 'Erro ao salvar lembrete.');
+    } finally {
+      setSalvando(false);
     }
-
-    setModalAberto(false);
   };
 
   return (
@@ -148,7 +176,11 @@ export default function TelaLembretes() {
         aoClicarIcone={abrirModalCriar}
       />
 
-      {lembretes.length === 0 ? (
+      {carregando ? (
+        <View style={estilos.carregandoContainer}>
+          <ActivityIndicator size="large" color={cores.primaria} />
+        </View>
+      ) : lembretes.length === 0 ? (
         <View style={estilos.estadoVazio}>
           <MaterialIcons name="notifications-none" size={64} color={cores.mutedForeground} />
           <Text style={estilos.tituloVazio}>Nenhum lembrete cadastrado</Text>
@@ -159,7 +191,7 @@ export default function TelaLembretes() {
       ) : (
         <FlatList
           data={lembretes}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item) => String(item.id)}
           contentContainerStyle={estilos.lista}
           showsVerticalScrollIndicator={false}
           renderItem={({ item }) => (
@@ -169,37 +201,17 @@ export default function TelaLembretes() {
               activeOpacity={0.8}
             >
               <View style={estilos.ladoEsquerdo}>
-                {/* Ícone indicador de status */}
                 <View style={estilos.iconeStatus}>
-                  <MaterialIcons
-                    name={item.concluido ? 'check-circle-outline' : 'error-outline'}
-                    size={24}
-                    color={item.concluido ? cores.mutedForeground : cores.primaria}
-                  />
+                  <MaterialIcons name="notifications" size={24} color={cores.primaria} />
                 </View>
 
-                {/* Conteúdo: Título, Descrição, Data/Hora e Badge */}
                 <View style={estilos.infoLembrete}>
-                  <Text
-                    style={[
-                      estilos.tituloLembrete,
-                      item.concluido && estilos.tituloConcluido,
-                    ]}
-                    numberOfLines={2}
-                    ellipsizeMode="tail"
-                  >
+                  <Text style={estilos.tituloLembrete} numberOfLines={2} ellipsizeMode="tail">
                     {item.titulo}
                   </Text>
 
                   {item.descricao ? (
-                    <Text
-                      style={[
-                        estilos.descricaoLembrete,
-                        item.concluido && estilos.descricaoConcluida,
-                      ]}
-                      numberOfLines={2}
-                      ellipsizeMode="tail"
-                    >
+                    <Text style={estilos.descricaoLembrete} numberOfLines={2} ellipsizeMode="tail">
                       {item.descricao}
                     </Text>
                   ) : null}
@@ -216,45 +228,21 @@ export default function TelaLembretes() {
                     />
                     <Text style={estilos.textoDataHora}>{item.hora}</Text>
                   </View>
-
-                  <View style={estilos.badgeWrapper}>
-                    <Badge
-                      rotulo={item.concluido ? 'Concluído' : 'Pendente'}
-                      variante={item.concluido ? 'muted' : 'destaque'}
-                    />
-                  </View>
                 </View>
               </View>
 
-              {/* Ação Rápida no Lado Direito */}
               <View style={estilos.ladoDireito}>
-                {item.concluido ? (
-                  // Concluído: Exibe lixeira para excluir
-                  <TouchableOpacity
-                    onPress={(e) => {
-                      e.stopPropagation();
-                      excluirLembrete(item.id);
-                    }}
-                    style={estilos.botaoAcaoRapida}
-                    activeOpacity={0.7}
-                    accessibilityLabel="Excluir lembrete"
-                  >
-                    <MaterialIcons name="delete-outline" size={24} color={cores.mutedForeground} />
-                  </TouchableOpacity>
-                ) : (
-                  // Pendente: Exibe botão para marcar como concluído com 1 toque
-                  <TouchableOpacity
-                    onPress={(e) => {
-                      e.stopPropagation();
-                      alternarConcluidoRapido(item.id);
-                    }}
-                    style={[estilos.botaoAcaoRapida, estilos.botaoConcluirPendente]}
-                    activeOpacity={0.7}
-                    accessibilityLabel="Marcar como concluído"
-                  >
-                    <MaterialIcons name="check" size={20} color={cores.primaria} />
-                  </TouchableOpacity>
-                )}
+                <TouchableOpacity
+                  onPress={(e) => {
+                    e.stopPropagation();
+                    excluirLembrete(item.id);
+                  }}
+                  style={estilos.botaoAcaoRapida}
+                  activeOpacity={0.7}
+                  accessibilityLabel="Excluir lembrete"
+                >
+                  <MaterialIcons name="delete-outline" size={22} color={cores.mutedForeground} />
+                </TouchableOpacity>
               </View>
             </TouchableOpacity>
           )}
@@ -273,7 +261,7 @@ export default function TelaLembretes() {
           <Pressable style={estilos.modalContainer} onPress={() => {}}>
             <View style={estilos.modalCabecalho}>
               <Text style={estilos.modalTitulo}>
-                {modoModal === 'criar' ? 'Novo Lembrete' : 'Detalhes do Lembrete'}
+                {modoModal === 'criar' ? 'Novo Lembrete' : 'Editar Lembrete'}
               </Text>
               <TouchableOpacity onPress={() => setModalAberto(false)}>
                 <MaterialIcons name="close" size={24} color={cores.textoPrincipal} />
@@ -282,7 +270,6 @@ export default function TelaLembretes() {
 
             <ScrollView showsVerticalScrollIndicator={false} style={estilos.modalScroll}>
               <View style={estilos.modalFormulario}>
-                {/* Campo Título */}
                 <View style={estilos.campoModal}>
                   <Text style={estilos.rotuloModal}>Título</Text>
                   <TextInput
@@ -294,7 +281,6 @@ export default function TelaLembretes() {
                   />
                 </View>
 
-                {/* Campo Descrição */}
                 <View style={estilos.campoModal}>
                   <Text style={estilos.rotuloModal}>Descrição</Text>
                   <TextInput
@@ -308,9 +294,7 @@ export default function TelaLembretes() {
                   />
                 </View>
 
-                {/* Linha com Data e Horário (50% cada) */}
                 <View style={estilos.linhaCamposDuplos}>
-                  {/* Campo Data */}
                   <View style={estilos.campoModalMetade}>
                     <Text style={estilos.rotuloModal}>Data</Text>
                     <View style={estilos.containerInputIcone}>
@@ -320,13 +304,11 @@ export default function TelaLembretes() {
                         placeholderTextColor={cores.mutedForeground}
                         value={data}
                         onChangeText={setData}
-                        {...({ type: 'date' } as any)}
                       />
                       <MaterialIcons name="event" size={20} color={cores.textoPrincipal} style={estilos.iconeInput} />
                     </View>
                   </View>
 
-                  {/* Campo Horário */}
                   <View style={estilos.campoModalMetade}>
                     <Text style={estilos.rotuloModal} numberOfLines={1} ellipsizeMode="tail">
                       Horário
@@ -338,33 +320,23 @@ export default function TelaLembretes() {
                         placeholderTextColor={cores.mutedForeground}
                         value={hora}
                         onChangeText={setHora}
-                        {...({ type: 'time' } as any)}
                       />
                       <MaterialIcons name="access-time" size={20} color={cores.textoPrincipal} style={estilos.iconeInput} />
                     </View>
                   </View>
                 </View>
 
-                {/* Opção Marcar como Concluído (apenas se ainda estiver pendente) */}
-                {modoModal === 'editar' && !concluido && (
-                  <Button
-                    titulo="Marcar como concluído"
-                    variante="secundario"
-                    icone="check"
-                    onPress={() => setConcluido(true)}
-                  />
+                {mensagemErro !== '' && (
+                  <Text style={estilos.erroTexto}>{mensagemErro}</Text>
                 )}
 
-                {/* Botão Salvar / Adicionar (quando criando ou pendente) */}
-                {!concluido && (
-                  <Button
-                    titulo={modoModal === 'criar' ? 'Adicionar lembrete' : 'Salvar alterações'}
-                    variante="primario"
-                    onPress={salvarLembrete}
-                  />
-                )}
+                <Button
+                  titulo={modoModal === 'criar' ? 'Adicionar lembrete' : 'Salvar alterações'}
+                  variante="primario"
+                  carregando={salvando}
+                  onPress={salvarLembrete}
+                />
 
-                {/* Botão Excluir no Modo Edição */}
                 {modoModal === 'editar' && lembreteEditandoId && (
                   <Button
                     titulo="Excluir lembrete"
@@ -387,6 +359,11 @@ const estilos = StyleSheet.create({
     flex: 1,
     backgroundColor: cores.fundo,
   },
+  carregandoContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   lista: {
     padding: espacamento.md,
     paddingBottom: espacamento.xg,
@@ -401,7 +378,7 @@ const estilos = StyleSheet.create({
     borderRadius: borda.md,
     padding: espacamento.md,
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     justifyContent: 'space-between',
   },
   ladoEsquerdo: {
@@ -423,20 +400,11 @@ const estilos = StyleSheet.create({
     fontFamily: tipografia.outfit.semibold,
     color: cores.textoPrincipal,
   },
-  tituloConcluido: {
-    textDecorationLine: 'line-through',
-    color: cores.mutedForeground,
-  },
   descricaoLembrete: {
     fontSize: tipografia.tamanhoPq,
     fontFamily: tipografia.inter.regular,
     color: cores.mutedForeground,
     lineHeight: 18,
-  },
-  descricaoConcluida: {
-    textDecorationLine: 'line-through',
-    color: cores.mutedForeground,
-    opacity: 0.8,
   },
   linhaDataHora: {
     flexDirection: 'row',
@@ -449,10 +417,6 @@ const estilos = StyleSheet.create({
     fontFamily: tipografia.inter.regular,
     color: cores.mutedForeground,
   },
-  badgeWrapper: {
-    alignSelf: 'flex-start',
-    marginTop: 2,
-  },
   ladoDireito: {
     alignItems: 'center',
     justifyContent: 'center',
@@ -460,19 +424,6 @@ const estilos = StyleSheet.create({
   botaoAcaoRapida: {
     padding: 6,
   },
-  botaoConcluirPendente: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    borderWidth: 1.5,
-    borderColor: cores.primaria,
-    backgroundColor: cores.destaque,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 0,
-  },
-
-  // Estado vazio
   estadoVazio: {
     flex: 1,
     alignItems: 'center',
@@ -492,8 +443,6 @@ const estilos = StyleSheet.create({
     color: cores.mutedForeground,
     textAlign: 'center',
   },
-
-  // Modal
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.45)',
@@ -576,5 +525,11 @@ const estilos = StyleSheet.create({
   campoModalMetade: {
     flex: 1,
     gap: espacamento.pq,
+  },
+  erroTexto: {
+    color: cores.destrutivo,
+    fontSize: tipografia.tamanhoPq,
+    fontFamily: tipografia.inter.regular,
+    textAlign: 'center',
   },
 });

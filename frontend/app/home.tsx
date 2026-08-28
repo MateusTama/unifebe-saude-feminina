@@ -1,6 +1,7 @@
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import ArticleCard, { Artigo } from './components/ArticleCard';
 import Badge from './components/Badge';
 import Alert from './components/Alert';
@@ -72,6 +73,22 @@ export default function Home() {
   const { alternarFavorito, eFavorito } = useFavoritos();
   const { ciclos } = useDiario();
 
+  const [nomeUsuario, setNomeUsuario] = useState('Usuária');
+
+  useEffect(() => {
+    AsyncStorage.getItem('@usuario').then((dados) => {
+      if (dados) {
+        try {
+          const u = JSON.parse(dados);
+          if (u?.nome) {
+            const primeiroNome = u.nome.trim().split(' ')[0];
+            if (primeiroNome) setNomeUsuario(primeiroNome);
+          }
+        } catch { }
+      }
+    });
+  }, []);
+
   const duracaoMedia = useMemo(() => calcularDuracaoMedia(ciclos), [ciclos]);
   const regularidade = useMemo(() => calcularRegularidade(ciclos), [ciclos]);
   const proximaMenstruacao = useMemo(() => calcularProximaMenstruacao(ciclos), [ciclos]);
@@ -129,7 +146,7 @@ export default function Home() {
         showsVerticalScrollIndicator={false}
       >
         <View style={estilos.secaoSaudacao}>
-          <Text style={estilos.saudacaoTitulo}>Olá, Usuária 👋</Text>
+          <Text style={estilos.saudacaoTitulo}>Olá, {nomeUsuario} 👋</Text>
           <Badge rotulo="Vida adulta" variante="primaria" />
         </View>
 

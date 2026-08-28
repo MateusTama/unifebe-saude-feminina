@@ -8,4 +8,3 @@ if __name__ == '__main__':
     porta = int(os.environ.get("PORT", 5000))
     debug = os.environ.get("FLASK_DEBUG", "False").lower() == "true"
     app.run(host=host, port=porta, debug=debug)
-

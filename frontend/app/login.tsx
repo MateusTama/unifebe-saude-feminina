@@ -1,28 +1,30 @@
 import { useState } from "react";
 import { StyleSheet, View, ScrollView, Text, TouchableOpacity } from "react-native";
 import { Link, useRouter } from "expo-router";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import HeroSection from "./components/HeroSection";
 import tema from "./styles/theme";
 import Input from "./components/Input";
 import Button from "./components/Button";
+import { api } from "./services/api";
 
 export default function Login() {
     const [email, setEmail] = useState('');
     const [senha, setSenha] = useState('');
     const [erros, setErros] = useState<{ [key: string]: string }>({});
     const [loginInvalido, setLoginInvalido] = useState(false);
+    const [mensagemErro, setMensagemErro] = useState('');
+    const [carregando, setCarregando] = useState(false);
 
     const router = useRouter();
 
     const validarFormulario = () => {
         const novosErros: { [key: string]: string } = {};
 
-        // 1. Verificação se está preenchido
         if (!email) novosErros.email = "Obrigatório";
         if (!senha) novosErros.senha = "Obrigatório";
 
-        // 2. Validações adicionais (apenas se o campo estiver preenchido)
-        if (email && email !== 'admin' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
             novosErros.email = "Inválido";
         }
 
@@ -30,13 +32,32 @@ export default function Login() {
         return Object.keys(novosErros).length === 0;
     };
 
-    const handleEntrar = () => {
-        if (validarFormulario()) {
-            if (email === 'admin' && senha === 'admin') {
-                router.replace('/home');
-            } else {
+    const handleEntrar = async () => {
+        setLoginInvalido(false);
+        setMensagemErro('');
+
+        if (!validarFormulario()) return;
+
+        setCarregando(true);
+
+        try {
+            const dados = await api('/usuarios/login', {
+                method: 'POST',
+                body: JSON.stringify({ email: email.trim().toLowerCase(), senha }),
+            });
+
+            await AsyncStorage.setItem('@token', dados.token);
+            await AsyncStorage.setItem('@usuario', JSON.stringify(dados.usuario));
+
+            router.replace('/home');
+        } catch (erro: any) {
+            if (erro.status === 401) {
                 setLoginInvalido(true);
+            } else {
+                setMensagemErro(erro.message || 'Não foi possível conectar ao servidor.');
             }
+        } finally {
+            setCarregando(false);
         }
     };
 
@@ -70,8 +91,13 @@ export default function Login() {
                     <Text style={estilos.erro}>Email ou senha incorretos</Text>
                 )}
 
+                {mensagemErro !== '' && (
+                    <Text style={estilos.erro}>{mensagemErro}</Text>
+                )}
+
                 <Button
-                    titulo="Entrar"
+                    titulo={carregando ? "Entrando..." : "Entrar"}
+                    carregando={carregando}
                     onPress={handleEntrar}
                 />
 
