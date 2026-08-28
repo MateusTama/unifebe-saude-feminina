@@ -9,23 +9,22 @@ def cadastrar_lembrete():
     if not dados:
         return jsonify({"mensagem": "Corpo da requisicao vazio"}), 400
         
-    titulo = dados.get('titulo')
-    if not titulo or not str(titulo).strip():
-        return jsonify({"mensagem": "O campo titulo e obrigatorio"}), 400
-        
     usuario_id = get_jwt_identity()
     
-    novo_lembrete = Lembrete(
-        usuario_id=usuario_id,
-        titulo=str(titulo).strip(),
-        descricao=dados.get('descricao'),
-        data_hora=dados.get('data_hora'),
-        situacao=dados.get('situacao', True)
-    )
-    
-    db.session.add(novo_lembrete)
-    db.session.commit()
-    
+    try:
+        novo_lembrete = Lembrete(
+            usuario_id=usuario_id,
+            titulo=dados.get('titulo'),
+            descricao=dados.get('descricao'),
+            data_hora=dados.get('data_hora'),
+            situacao=dados.get('situacao', True)
+        )
+        
+        db.session.add(novo_lembrete)
+        db.session.commit()
+    except ValueError as e:
+        return jsonify({"mensagem": str(e)}), 400
+        
     return jsonify({"mensagem": "Lembrete cadastrado com sucesso"}), 201
 
 def listar_lembretes():
@@ -71,22 +70,22 @@ def editar_lembrete(id):
     if not dados:
         return jsonify({"mensagem": "Corpo da requisicao vazio"}), 400
         
-    if 'titulo' in dados:
-        titulo = dados['titulo']
-        if not titulo or not str(titulo).strip():
-            return jsonify({"mensagem": "O campo titulo nao pode ser vazio"}), 400
-        lembrete.titulo = str(titulo).strip()
+    try:
+        if 'titulo' in dados:
+            lembrete.titulo = dados['titulo']
+            
+        if 'descricao' in dados:
+            lembrete.descricao = dados['descricao']
+            
+        if 'data_hora' in dados:
+            lembrete.data_hora = dados['data_hora']
+            
+        if 'situacao' in dados:
+            lembrete.situacao = dados['situacao']
+            
+        db.session.commit()
+    except ValueError as e:
+        return jsonify({"mensagem": str(e)}), 400
         
-    if 'descricao' in dados:
-        lembrete.descricao = dados['descricao']
-        
-    if 'data_hora' in dados:
-        lembrete.data_hora = dados['data_hora']
-        
-    if 'situacao' in dados:
-        lembrete.situacao = dados['situacao']
-        
-    db.session.commit()
-    
     return jsonify({"mensagem": "Lembrete atualizado com sucesso"}), 200
 
