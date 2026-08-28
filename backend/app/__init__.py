@@ -1,5 +1,6 @@
 from flask import Flask, redirect, url_for
 from flask_jwt_extended import JWTManager
+from flask_cors import CORS
 from config import Config
 from app.models import db
 from app.routes.admin import register_admin_blueprints
@@ -19,6 +20,7 @@ def create_app(config_class=Config):
     # Inicialização do Banco de Dados e JWT
     db.init_app(app)
     JWTManager(app)
+    CORS(app)
 
     # Registro das Rotas da API Mobile
     app.register_blueprint(usuario_bp, url_prefix='/usuarios')

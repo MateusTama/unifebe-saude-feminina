@@ -37,27 +37,21 @@ def cadastrar_fase_vida():
     if not dados:
         return jsonify({"mensagem": "Corpo da requisicao vazio"}), 400
         
-    nome = dados.get('nome')
-    if not nome or not str(nome).strip():
-        return jsonify({"mensagem": "O campo nome e obrigatorio"}), 400
-        
-    nome_limpo = str(nome).strip()
-    
-    if FaseVida.query.filter_by(nome=nome_limpo).first():
-        return jsonify({"mensagem": "Fase da vida ja cadastrada"}), 400
-        
     usuario_id = get_jwt_identity()
     
-    nova_fase = FaseVida(
-        nome=nome_limpo,
-        descricao=dados.get('descricao'),
-        situacao=dados.get('situacao', True),
-        usuario_cadastro=usuario_id
-    )
-    
-    db.session.add(nova_fase)
-    db.session.commit()
-    
+    try:
+        nova_fase = FaseVida(
+            nome=dados.get('nome'),
+            descricao=dados.get('descricao'),
+            situacao=dados.get('situacao', True),
+            usuario_cadastro=usuario_id
+        )
+        
+        db.session.add(nova_fase)
+        db.session.commit()
+    except ValueError as e:
+        return jsonify({"mensagem": str(e)}), 400
+        
     return jsonify({"mensagem": "Fase da vida cadastrada com sucesso"}), 201
 
 def editar_fase_vida(id):
@@ -70,29 +64,24 @@ def editar_fase_vida(id):
     if not dados:
         return jsonify({"mensagem": "Corpo da requisicao vazio"}), 400
         
-    if 'nome' in dados:
-        nome = dados['nome']
-        if not nome or not str(nome).strip():
-            return jsonify({"mensagem": "O campo nome nao pode ser vazio"}), 400
+    try:
+        if 'nome' in dados:
+            fase.nome = dados['nome']
             
-        nome_limpo = str(nome).strip()
-        existente = FaseVida.query.filter_by(nome=nome_limpo).first()
-        if existente and existente.id != fase.id:
-            return jsonify({"mensagem": "Ja existe outra fase da vida com este nome"}), 400
+        if 'descricao' in dados:
+            fase.descricao = dados['descricao']
             
-        fase.nome = nome_limpo
+        if 'situacao' in dados:
+            fase.situacao = dados['situacao']
+            
+        usuario_id = get_jwt_identity()
+        fase.usuario_alteracao = usuario_id
+        fase.data_alteracao = db.func.current_timestamp()
         
-    if 'descricao' in dados:
-        fase.descricao = dados['descricao']
+        db.session.commit()
+    except ValueError as e:
+        return jsonify({"mensagem": str(e)}), 400
         
-    if 'situacao' in dados:
-        fase.situacao = dados['situacao']
-        
-    usuario_id = get_jwt_identity()
-    fase.usuario_alteracao = usuario_id
-    fase.data_alteracao = db.func.current_timestamp()
-    
-    db.session.commit()
-    
     return jsonify({"mensagem": "Fase da vida atualizada com sucesso"}), 200
+
 
