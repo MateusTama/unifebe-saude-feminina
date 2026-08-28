@@ -1,4 +1,5 @@
 from flask import Flask
+from flask_cors import CORS
 import os
 from config import Config
 from app.models import db
@@ -12,6 +13,7 @@ app.config.from_object(Config)
 
 db.init_app(app)
 jwt = JWTManager(app)
+CORS(app)
 
 app.register_blueprint(usuario_bp, url_prefix='/usuarios')
 app.register_blueprint(fase_vida_bp, url_prefix='/fases-vida')
