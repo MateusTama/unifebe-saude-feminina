@@ -1,0 +1,132 @@
+{% extends 'admin/base.html' %}
+
+{% block title %}{% if tipo == 'administradores' %}Administradores{% else %}Usuários{% endif %} — SaúdeFem Administração{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto flex flex-col gap-6">
+
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-2xl font-bold text-foreground tracking-tight">
+        {% if tipo == 'administradores' %}Administradores{% else %}Usuárias{% endif %}
+      </h1>
+      <p class="text-xs text-muted-foreground font-normal mt-0.5">{{ usuarios|length }} conta(s) cadastrada(s)</p>
+    </div>
+  </div>
+
+  <form method="GET" action="{{ url_for('admin_usuarios.administradores') if tipo == 'administradores' else url_for('admin_usuarios.index') }}" class="flex items-center gap-3">
+    <div class="relative flex-1 max-w-md">
+      <i data-lucide="search" class="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground"></i>
+      <input type="text" 
+             name="busca" 
+             value="{{ busca }}" 
+             placeholder="Buscar por nome ou e-mail..." 
+             class="w-full h-10 pl-10 pr-4 text-sm font-normal bg-white border border-input rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all shadow-sm">
+    </div>
+
+    <div class="w-44">
+      <select name="situacao" 
+              onchange="this.form.submit()" 
+              class="w-full h-10 px-3 text-sm font-normal bg-white border border-input rounded-lg text-foreground focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all shadow-sm cursor-pointer">
+        <option value="">Todas Situações</option>
+        <option value="true" {% if situacao == 'true' or situacao == 'True' %}selected{% endif %}>Ativos</option>
+        <option value="false" {% if situacao == 'false' or situacao == 'False' %}selected{% endif %}>Inativos</option>
+      </select>
+    </div>
+
+    {% if busca or situacao %}
+      <a href="{{ url_for('admin_usuarios.administradores') if tipo == 'administradores' else url_for('admin_usuarios.index') }}" class="h-10 w-10 flex items-center justify-center text-muted-foreground hover:text-foreground rounded-lg hover:bg-secondary transition-colors border border-input bg-white shadow-sm" title="Limpar Filtros">
+        <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+      </a>
+    {% endif %}
+  </form>
+
+  <div class="bg-white border border-border rounded-xl overflow-hidden shadow-sm">
+    <table class="w-full text-left border-collapse">
+      <thead>
+        <tr class="border-b border-border bg-muted/50 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+          <th class="py-3.5 px-6">Nome</th>
+          <th class="py-3.5 px-4">E-mail</th>
+          <th class="py-3.5 px-4 text-center">Perfil</th>
+          <th class="py-3.5 px-4 text-center">Data Cadastro</th>
+          <th class="py-3.5 px-4 text-center">Situação</th>
+          <th class="py-3.5 px-6 text-right">Ações</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-border text-sm text-foreground font-normal">
+        {% if usuarios %}
+          {% for u in usuarios %}
+            <tr class="hover:bg-muted/30 transition-colors">
+              <td class="py-4 px-6 font-semibold text-foreground align-middle">
+                <div class="flex items-center gap-3">
+                  <div class="w-8 h-8 rounded-full flex items-center justify-center font-semibold text-xs text-white shrink-0" style="background-color: hsl(var(--primary));">
+                    {{ u.nome[0] if u.nome else 'U' }}
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <span>{{ u.nome }}</span>
+                    {% if session.get('admin_usuario_id') == u.id %}
+                      <span class="text-[10px] font-medium px-2 py-0.5 rounded-full bg-secondary text-muted-foreground border border-border">Você</span>
+                    {% endif %}
+                  </div>
+                </div>
+              </td>
+              <td class="py-4 px-4 text-foreground text-sm align-middle">
+                {{ u.email }}
+              </td>
+              <td class="py-4 px-4 text-center align-middle">
+                <span class="badge-tag inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-normal">
+                  {{ u.perfil.value }}
+                </span>
+              </td>
+              <td class="py-4 px-4 text-center text-foreground text-sm font-normal align-middle">
+                {{ u.data_cadastro.strftime('%d/%m/%Y') if u.data_cadastro else '-' }}
+              </td>
+              <td class="py-4 px-4 text-center align-middle">
+                {% if u.situacao %}
+                  <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium badge-active">
+                    <span class="w-1.5 h-1.5 rounded-full bg-[hsl(var(--status-active))]"></span> ATIVO
+                  </span>
+                {% else %}
+                  <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium badge-inactive">
+                    <span class="w-1.5 h-1.5 rounded-full bg-[hsl(var(--status-inactive))]"></span> INATIVO
+                  </span>
+                {% endif %}
+              </td>
+              <td class="py-4 px-6 text-right align-middle">
+                <div class="inline-flex items-center justify-end">
+                  {% if session.get('admin_usuario_id') == u.id %}
+                    <button type="button" 
+                            disabled
+                            class="w-8 h-8 inline-flex items-center justify-center rounded-md text-muted-foreground/30 cursor-not-allowed"
+                            title="Você não pode inativar sua própria conta de administrador">
+                      <i data-lucide="power" class="w-4 h-4"></i>
+                    </button>
+                  {% else %}
+                    <form method="POST" action="{{ url_for('admin_usuarios.toggle', id=u.id) }}" class="inline-flex items-center m-0 p-0">
+                      <button type="submit" 
+                              class="w-8 h-8 inline-flex items-center justify-center rounded-md transition-colors {% if u.situacao %}text-red-500 hover:text-red-600 hover:bg-red-50{% else %}text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50{% endif %}"
+                              title="{% if u.situacao %}Inativar Acesso{% else %}Ativar Acesso{% endif %}">
+                        <i data-lucide="power" class="w-4 h-4"></i>
+                      </button>
+                    </form>
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td colspan="6" class="py-12 text-center text-muted-foreground font-normal text-sm">
+              <div class="flex flex-col items-center justify-center gap-2">
+                <i data-lucide="users" class="w-8 h-8 text-muted-foreground/60"></i>
+                <p class="text-sm">Nenhum registro encontrado.</p>
+              </div>
+            </td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+
+</div>
+{% endblock %}

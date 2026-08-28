@@ -14,3 +14,6 @@ class Artigo(db.Model):
     data_alteracao = db.Column(db.DateTime(timezone=True))
     usuario_alteracao = db.Column(db.Integer, db.ForeignKey('usuario.id', ondelete='SET NULL'))
     situacao = db.Column(db.Boolean, default=True, nullable=False)
+
+    # Relacionamento com Tema
+    tema = db.relationship('Tema', foreign_keys=[tema_id], backref=db.backref('artigos', lazy=True))
