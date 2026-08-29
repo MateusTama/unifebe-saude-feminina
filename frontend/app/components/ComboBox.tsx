@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import DropDownPicker from 'react-native-dropdown-picker';
 import { cores, tipografia, espacamento, input, borda } from '../styles/theme';
@@ -28,6 +28,15 @@ export default function ComboBox(props: ComboBoxProps) {
   }));
   
   const [itens, setItens] = useState(itensDropdown);
+
+  useEffect(() => {
+    setItens(
+      props.itens.map((item) => ({
+        label: item.rotulo,
+        value: item.valor,
+      }))
+    );
+  }, [props.itens]);
 
   return (
     <View style={[estilos.container, { zIndex: props.zIndex ?? 1 }]}>

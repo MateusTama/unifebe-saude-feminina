@@ -1,5 +1,6 @@
-import { useState, useMemo } from 'react';
-import { View, Text, ScrollView, FlatList, StyleSheet } from 'react-native';
+import { useState, useMemo, useEffect, useCallback } from 'react';
+import { View, Text, ScrollView, FlatList, StyleSheet, ActivityIndicator } from 'react-native';
+import { useRouter } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import Header from './components/Header';
 import Input from './components/Input';
@@ -7,113 +8,21 @@ import ComboBox from './components/ComboBox';
 import Chip from './components/Chip';
 import ArticleCard, { Artigo } from './components/ArticleCard';
 import BottomNavBar from './components/BottomNavBar';
-import { cores, tipografia, espacamento } from './styles/theme';
+import { useFavoritos } from './context/FavoritosContext';
+import { api } from './services/api';
+import { borda, cores, espacamento, sombra, tipografia } from './styles/theme';
 
-// Dados mockados — 10 artigos com temas variados
-const ARTIGOS_MOCK: Artigo[] = [
-  {
-    id: '1',
-    titulo: 'Entendendo o Ciclo Menstrual',
-    descricao: 'Aprenda sobre as fases do ciclo menstrual e como seu corpo muda ao longo do mês. Conheça os hormônios envolvidos e o que é considerado normal.',
-    icone: '🌸',
-    palavrasChave: ['ciclo', 'menstruação', 'hormônios', 'fases'],
-    tema: 'Menstruação',
-  },
-  {
-    id: '2',
-    titulo: 'Cólicas Menstruais: Causas e Alívio',
-    descricao: 'Descubra por que as cólicas acontecem e conheça métodos naturais e medicamentosos para aliviar o desconforto durante a menstruação.',
-    icone: '💊',
-    palavrasChave: ['cólica', 'menstruação', 'dor', 'alívio'],
-    tema: 'Menstruação',
-  },
-  {
-    id: '3',
-    titulo: 'TPM: Sintomas e Como Lidar',
-    descricao: 'A Tensão Pré-Menstrual afeta muitas mulheres. Entenda os sintomas físicos e emocionais e aprenda estratégias para gerenciar melhor esse período.',
-    icone: '😌',
-    palavrasChave: ['TPM', 'menstruação', 'sintomas', 'humor'],
-    tema: 'Menstruação',
-  },
-  {
-    id: '4',
-    titulo: 'Primeiros Meses de Gravidez',
-    descricao: 'Saiba o que esperar nos primeiros três meses de gestação, desde os sintomas iniciais até os cuidados essenciais com sua saúde e do bebê.',
-    icone: '🤰',
-    palavrasChave: ['gravidez', 'gestação', 'trimestre', 'cuidados'],
-    tema: 'Gravidez',
-  },
-  {
-    id: '5',
-    titulo: 'Alimentação na Gravidez',
-    descricao: 'Nutrição adequada é fundamental durante a gestação. Conheça os alimentos recomendados e aqueles que devem ser evitados para uma gravidez saudável.',
-    icone: '🥗',
-    palavrasChave: ['gravidez', 'alimentação', 'nutrição', 'saúde'],
-    tema: 'Gravidez',
-  },
-  {
-    id: '6',
-    titulo: 'Preparando-se para o Parto',
-    descricao: 'Informações sobre os tipos de parto, o que levar para a maternidade e como se preparar física e emocionalmente para o nascimento do bebê.',
-    icone: '👶',
-    palavrasChave: ['gravidez', 'parto', 'maternidade', 'preparação'],
-    tema: 'Gravidez',
-  },
-  {
-    id: '7',
-    titulo: 'Pílula Anticoncepcional: Guia Completo',
-    descricao: 'Entenda como funciona a pílula anticoncepcional, seus tipos, eficácia, efeitos colaterais e como escolher o método mais adequado para você.',
-    icone: '💊',
-    palavrasChave: ['contraceptivos', 'pílula', 'hormônios', 'prevenção'],
-    tema: 'Contraceptivos',
-  },
-  {
-    id: '8',
-    titulo: 'DIU: Tudo Sobre o Dispositivo Intrauterino',
-    descricao: 'Conheça os tipos de DIU disponíveis, como funciona a colocação, duração, eficácia e quem pode usar este método contraceptivo de longa duração.',
-    icone: '🔒',
-    palavrasChave: ['contraceptivos', 'DIU', 'prevenção', 'longa duração'],
-    tema: 'Contraceptivos',
-  },
-  {
-    id: '9',
-    titulo: 'Menopausa: Uma Nova Fase',
-    descricao: 'A menopausa é uma transição natural na vida da mulher. Entenda as mudanças hormonais, sintomas comuns e como manter qualidade de vida nesta fase.',
-    icone: '🌺',
-    palavrasChave: ['menopausa', 'hormônios', 'sintomas', 'climatério'],
-    tema: 'Menopausa',
-  },
-  {
-    id: '10',
-    titulo: 'Saúde Íntima e Prevenção de Infecções',
-    descricao: 'Aprenda sobre higiene íntima adequada, prevenção de infecções urinárias e vaginais, e quando procurar ajuda médica para manter sua saúde sexual.',
-    icone: '🩺',
-    palavrasChave: ['saúde sexual', 'prevenção', 'higiene', 'infecções'],
-    tema: 'Saúde Sexual',
-  },
-];
+interface TemaAPI {
+  id: number;
+  nome: string;
+  descricao?: string;
+  destaque?: boolean;
+}
 
-// Opções de tema para o ComboBox
-const OPCOES_TEMA = [
-  { rotulo: 'Todos os temas', valor: '' },
-  { rotulo: 'Menstruação', valor: 'Menstruação' },
-  { rotulo: 'Gravidez', valor: 'Gravidez' },
-  { rotulo: 'Contraceptivos', valor: 'Contraceptivos' },
-  { rotulo: 'Menopausa', valor: 'Menopausa' },
-  { rotulo: 'Saúde Sexual', valor: 'Saúde Sexual' },
-];
-
-// Palavras-chave populares para seleção rápida
-const PALAVRAS_POPULARES = [
-  'menstruação',
-  'gravidez',
-  'contraceptivos',
-  'cólica',
-  'TPM',
-  'fertilidade',
-  'menopausa',
-  'hormônios',
-];
+interface PalavraChaveAPI {
+  id: number;
+  nome: string;
+}
 
 /**
  * Filtra artigos pela busca usando correspondência parcial sem distinção de maiúsculas.
@@ -129,8 +38,8 @@ export function filtrarArtigosPorBusca(artigos: Artigo[], busca: string): Artigo
 
   return artigos.filter((artigo) => {
     const tituloCorresponde = artigo.titulo.toLowerCase().includes(buscaNormalizada);
-    const descricaoCorresponde = artigo.descricao.toLowerCase().includes(buscaNormalizada);
-    const palavraCorresponde = artigo.palavrasChave.some((palavra) =>
+    const descricaoCorresponde = (artigo.descricao || '').toLowerCase().includes(buscaNormalizada);
+    const palavraCorresponde = (artigo.palavrasChave || []).some((palavra) =>
       palavra.toLowerCase().includes(buscaNormalizada)
     );
 
@@ -138,27 +47,143 @@ export function filtrarArtigosPorBusca(artigos: Artigo[], busca: string): Artigo
   });
 }
 
-import { useFavoritos } from './context/FavoritosContext';
-
 export default function TelaBuscarArtigos() {
+  const router = useRouter();
   const [busca, setBusca] = useState('');
   const [temaSelecionado, setTemaSelecionado] = useState<string | null>(null);
-  const [palavrasSelecionadas, setPalavrasSelecionadas] = useState<Set<string>>(new Set());
-  const { alternarFavorito, eFavorito } = useFavoritos();
+  const [palavrasSelecionadasIds, setPalavrasSelecionadasIds] = useState<Set<number>>(new Set());
+  const [temas, setTemas] = useState<TemaAPI[]>([]);
+  const [palavrasChave, setPalavrasChave] = useState<PalavraChaveAPI[]>([]);
+  const [carregandoFiltros, setCarregandoFiltros] = useState(true);
 
-  // Artigos filtrados em tempo real com base na busca
-  const artigosFiltrados = useMemo(
-    () => filtrarArtigosPorBusca(ARTIGOS_MOCK, busca),
-    [busca]
+  const [artigos, setArtigos] = useState<Artigo[]>([]);
+  const [carregandoArtigos, setCarregandoArtigos] = useState(true);
+
+  const { alternarFavorito, eFavorito, sincronizarFavoritos } = useFavoritos();
+
+  useEffect(() => {
+    carregarFiltros();
+  }, []);
+
+  const carregarFiltros = async () => {
+    setCarregandoFiltros(true);
+    try {
+      const [resTemas, resPalavras] = await Promise.all([
+        api('/temas').catch(() => ({ temas: [] })),
+        api('/palavras-chave').catch(() => ({ palavras_chave: [] })),
+      ]);
+
+      if (resTemas?.temas && Array.isArray(resTemas.temas)) {
+        setTemas(resTemas.temas);
+      }
+
+      if (resPalavras?.palavras_chave && Array.isArray(resPalavras.palavras_chave)) {
+        const validas: PalavraChaveAPI[] = resPalavras.palavras_chave
+          .filter((p: any) => p && typeof p.id === 'number' && typeof p.nome === 'string');
+        setPalavrasChave(validas);
+      }
+    } catch (erro) {
+      console.log('Erro ao carregar filtros da API:', erro);
+    } finally {
+      setCarregandoFiltros(false);
+    }
+  };
+
+  const carregarArtigos = useCallback(
+    async (termoBusca: string, idTema: string | null, idsPalavras: Set<number>) => {
+      setCarregandoArtigos(true);
+      try {
+        const params = new URLSearchParams();
+
+        if (termoBusca.trim()) {
+          params.append('titulo', termoBusca.trim());
+        }
+
+        if (idTema && idTema !== '') {
+          params.append('tema_id', idTema);
+        }
+
+        if (idsPalavras.size > 0) {
+          params.append('palavras_chave_ids', Array.from(idsPalavras).join(','));
+        }
+
+        const queryString = params.toString() ? `?${params.toString()}` : '';
+        const resposta = await api(`/artigos${queryString}`);
+
+        if (resposta?.artigos && Array.isArray(resposta.artigos)) {
+          const formatados: Artigo[] = resposta.artigos.map((item: any) => ({
+            id: String(item.id),
+            titulo: item.titulo || '',
+            descricao: item.conteudo || '',
+            icone: item.icone || '',
+            palavrasChave: Array.isArray(item.palavras_chave)
+              ? item.palavras_chave.map((pc: any) => (typeof pc === 'string' ? pc : pc.nome || ''))
+              : [],
+            tema:
+              typeof item.tema === 'object' && item.tema !== null
+                ? item.tema.nome || ''
+                : item.tema || '',
+          }));
+
+          setArtigos(formatados);
+
+          const favoritados = resposta.artigos
+            .filter((item: any) => item.curtido)
+            .map((item: any) => ({
+              id: String(item.id),
+              titulo: item.titulo || '',
+              descricao: item.conteudo || '',
+              icone: item.icone || '',
+              palavrasChave: Array.isArray(item.palavras_chave)
+                ? item.palavras_chave.map((pc: any) => (typeof pc === 'string' ? pc : pc.nome || ''))
+                : [],
+              tema:
+                typeof item.tema === 'object' && item.tema !== null
+                  ? item.tema.nome || ''
+                  : item.tema || '',
+            }));
+
+          if (favoritados.length > 0 && sincronizarFavoritos) {
+            sincronizarFavoritos(favoritados);
+          }
+        } else {
+          setArtigos([]);
+        }
+      } catch (erro) {
+        console.log('Erro ao buscar artigos:', erro);
+        setArtigos([]);
+      } finally {
+        setCarregandoArtigos(false);
+      }
+    },
+    [sincronizarFavoritos]
   );
 
-  const alternarPalavra = (palavra: string) => {
-    setPalavrasSelecionadas((anterior) => {
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      carregarArtigos(busca, temaSelecionado, palavrasSelecionadasIds);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [busca, temaSelecionado, palavrasSelecionadasIds, carregarArtigos]);
+
+  const opcoesTema = useMemo(() => {
+    const opcoes = [{ rotulo: 'Todos os temas', valor: '' }];
+    temas.forEach((t) => {
+      if (t.nome) {
+        opcoes.push({ rotulo: t.nome, valor: String(t.id) });
+      }
+    });
+    return opcoes;
+  }, [temas]);
+
+  const alternarPalavra = (id: number) => {
+    setPalavrasSelecionadasIds((anterior) => {
       const proximo = new Set(anterior);
-      if (proximo.has(palavra)) {
-        proximo.delete(palavra);
+      if (proximo.has(id)) {
+        proximo.delete(id);
       } else {
-        proximo.add(palavra);
+        proximo.add(id);
       }
       return proximo;
     });
@@ -189,7 +214,7 @@ export default function TelaBuscarArtigos() {
           <ComboBox
             valor={temaSelecionado}
             aoMudar={setTemaSelecionado}
-            itens={OPCOES_TEMA}
+            itens={opcoesTema}
             placeholder="Todos os temas"
             zIndex={20}
           />
@@ -198,34 +223,55 @@ export default function TelaBuscarArtigos() {
         {/* Palavras-chave populares */}
         <View style={[estilos.secao, { zIndex: 10 }]}>
           <Text style={estilos.tituloSecao}>Palavras-chave populares</Text>
-          <View style={estilos.containerPalavras}>
-            {PALAVRAS_POPULARES.map((palavra) => (
-              <Chip
-                key={palavra}
-                rotulo={palavra}
-                ativo={palavrasSelecionadas.has(palavra)}
-                aoPress={() => alternarPalavra(palavra)}
-              />
-            ))}
-          </View>
+          {carregandoFiltros && palavrasChave.length === 0 ? (
+            <ActivityIndicator
+              size="small"
+              color={cores.primaria}
+              style={{ alignSelf: 'flex-start', marginVertical: espacamento.pq }}
+            />
+          ) : palavrasChave.length === 0 ? (
+            <Text style={estilos.textoSemFiltro}>Nenhuma palavra-chave disponível</Text>
+          ) : (
+            <View style={estilos.containerPalavras}>
+              {palavrasChave.map((palavra) => (
+                <Chip
+                  key={palavra.id}
+                  rotulo={palavra.nome}
+                  ativo={palavrasSelecionadasIds.has(palavra.id)}
+                  aoPress={() => alternarPalavra(palavra.id)}
+                />
+              ))}
+            </View>
+          )}
         </View>
 
         {/* Lista de artigos */}
         <View style={[estilos.secaoUltima, { zIndex: 1 }]}>
-          {artigosFiltrados.length === 0 && busca !== '' ? (
+          {carregandoArtigos ? (
+            <View style={estilos.containerCarregando}>
+              <ActivityIndicator size="small" color={cores.primaria} />
+              <Text style={estilos.textoCarregando}>Buscando artigos...</Text>
+            </View>
+          ) : artigos.length === 0 ? (
             <View style={estilos.estadoVazio}>
               <MaterialIcons name="search-off" size={48} color={cores.mutedForeground} />
               <Text style={estilos.textoEstadoVazio}>Nenhum artigo encontrado</Text>
             </View>
           ) : (
             <FlatList
-              data={artigosFiltrados}
+              data={artigos}
               keyExtractor={(item) => item.id}
               renderItem={({ item }) => (
                 <ArticleCard
                   artigo={item}
                   curtido={eFavorito(item.id)}
                   aoAlternarCurtida={() => alternarFavorito(item)}
+                  aoPressionar={() =>
+                    router.push({
+                      pathname: '/artigo',
+                      params: { id: item.id },
+                    })
+                  }
                 />
               )}
               scrollEnabled={false}
@@ -276,6 +322,23 @@ const estilos = StyleSheet.create({
   separador: {
     height: espacamento.md,
   },
+  containerCarregando: {
+    backgroundColor: cores.branco,
+    borderRadius: borda.md,
+    borderWidth: 1,
+    borderColor: cores.borda,
+    padding: espacamento.gd,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: espacamento.pq,
+    ...sombra.pq,
+  },
+  textoCarregando: {
+    fontSize: tipografia.tamanhoPq,
+    fontFamily: tipografia.inter.regular,
+    color: cores.mutedForeground,
+    marginTop: espacamento.pq,
+  },
   estadoVazio: {
     alignItems: 'center',
     justifyContent: 'center',
@@ -286,5 +349,10 @@ const estilos = StyleSheet.create({
     fontFamily: tipografia.outfit.medio,
     color: cores.mutedForeground,
     marginTop: espacamento.md,
+  },
+  textoSemFiltro: {
+    fontSize: tipografia.tamanhoPq,
+    fontFamily: tipografia.inter.regular,
+    color: cores.mutedForeground,
   },
 });

@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { borda, cores, espacamento, sombra, tipografia } from '../styles/theme';
 import Chip from './Chip';
 import LikeButton from './LikeButton';
@@ -6,35 +6,55 @@ import LikeButton from './LikeButton';
 export interface Artigo {
   id: string;
   titulo: string;
-  descricao: string;
-  icone: string;
-  palavrasChave: string[];
-  tema: string;
+  descricao?: string;
+  conteudo?: string;
+  icone?: string;
+  palavrasChave?: string[];
+  tema?: string;
 }
 
 interface CardArtigoProps {
   artigo: Artigo;
   curtido: boolean;
   aoAlternarCurtida: () => void;
+  aoPressionar?: () => void;
 }
 
-export default function ArticleCard({ artigo, curtido, aoAlternarCurtida }: CardArtigoProps) {
-  const palavrasExibidas = artigo.palavrasChave.slice(0, 3);
+export default function ArticleCard({
+  artigo,
+  curtido,
+  aoAlternarCurtida,
+  aoPressionar,
+}: CardArtigoProps) {
+  const palavrasExibidas = (artigo.palavrasChave || []).slice(0, 5);
+  const temTema = Boolean(artigo.tema && artigo.tema.trim());
 
   return (
-    <View style={estilos.card}>
-      {/* Linha principal: título + curtir */}
-      <View style={estilos.cabecalho}>
-        <Text style={estilos.titulo} numberOfLines={2} ellipsizeMode="tail">
-          {artigo.titulo}
-        </Text>
+    <TouchableOpacity
+      style={estilos.card}
+      onPress={aoPressionar}
+      activeOpacity={aoPressionar ? 0.7 : 1}
+      disabled={!aoPressionar}
+    >
+      {/* Linha principal: título e tema agrupados + curtir */}
+      <View
+        style={[
+          estilos.cabecalho,
+          temTema ? estilos.cabecalhoComTema : estilos.cabecalhoSemTema,
+        ]}
+      >
+        <View style={estilos.blocoTitulo}>
+          <Text style={estilos.titulo} numberOfLines={2} ellipsizeMode="tail">
+            {artigo.titulo}
+          </Text>
+          {temTema && (
+            <Text style={estilos.subtituloTema}>
+              {artigo.tema!.trim()}
+            </Text>
+          )}
+        </View>
         <LikeButton curtido={curtido} aoPress={aoAlternarCurtida} />
       </View>
-
-      {/* Descrição */}
-      <Text style={estilos.descricao} numberOfLines={3} ellipsizeMode="tail">
-        {artigo.descricao}
-      </Text>
 
       {/* Palavras-chave */}
       {palavrasExibidas.length > 0 && (
@@ -44,7 +64,7 @@ export default function ArticleCard({ artigo, curtido, aoAlternarCurtida }: Card
           ))}
         </View>
       )}
-    </View>
+    </TouchableOpacity>
   );
 }
 
@@ -55,26 +75,33 @@ const estilos = StyleSheet.create({
     borderWidth: 1,
     borderColor: cores.borda,
     padding: espacamento.md,
+    gap: espacamento.pq,
     ...sombra.pq,
   },
   cabecalho: {
     flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: espacamento.pq,
+    justifyContent: 'space-between',
     gap: espacamento.pq,
   },
-  titulo: {
+  cabecalhoComTema: {
+    alignItems: 'flex-start',
+  },
+  cabecalhoSemTema: {
+    alignItems: 'center',
+  },
+  blocoTitulo: {
     flex: 1,
+    gap: 2,
+  },
+  titulo: {
     fontSize: 16,
     fontFamily: tipografia.outfit.semibold,
     color: cores.textoPrincipal,
   },
-  descricao: {
-    fontSize: 14,
+  subtituloTema: {
+    fontSize: 12,
     fontFamily: tipografia.inter.regular,
-    color: cores.mutedForeground,
-    marginBottom: espacamento.md,
-    lineHeight: 14 * 1.5,
+    color: 'rgb(100, 116, 139)',
   },
   containerPalavras: {
     flexDirection: 'row',

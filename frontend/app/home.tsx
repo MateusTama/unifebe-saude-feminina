@@ -1,7 +1,9 @@
-import { useMemo, useState, useEffect } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useMemo, useState, useEffect, useCallback } from 'react';
+import { ScrollView, StyleSheet, Text, View, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { MaterialIcons } from '@expo/vector-icons';
 import ArticleCard, { Artigo } from './components/ArticleCard';
 import Badge from './components/Badge';
 import Alert from './components/Alert';
@@ -18,62 +20,69 @@ import {
   formatarJanelaFertil,
   obterUltimoCicloInicio,
 } from './services/calculoCiclo';
-import { cores, espacamento, tipografia } from './styles/theme';
-
-const ARTIGOS_RECOMENDADOS: Artigo[] = [
-  {
-    id: '1',
-    titulo: 'Entendendo o Ciclo Menstrual',
-    descricao:
-      'Saiba como funciona o ciclo menstrual e quais mudanças são normais no seu corpo.',
-    icone: 'sync',
-    palavrasChave: ['menstruação', 'ciclo', 'saúde'],
-    tema: 'Menstruação',
-  },
-  {
-    id: '2',
-    titulo: 'Métodos Contraceptivos: Guia Completo',
-    descricao:
-      'Conheça os principais métodos contraceptivos disponíveis no SUS e escolha o melhor para você.',
-    icone: 'medication',
-    palavrasChave: ['contraceptivos', 'planejamento', 'SUS'],
-    tema: 'Contraceptivos',
-  },
-  {
-    id: '3',
-    titulo: 'Saúde Mental Feminina',
-    descricao:
-      'A importância de cuidar da saúde mental e como buscar ajuda quando necessário.',
-    icone: 'psychology',
-    palavrasChave: ['saúde mental', 'ansiedade', 'bem-estar'],
-    tema: 'Saúde Mental',
-  },
-  {
-    id: '4',
-    titulo: 'ISTs: Prevenção e Tratamento',
-    descricao:
-      'Conheça as principais infecções sexualmente transmissíveis e como se proteger.',
-    icone: 'health-and-safety',
-    palavrasChave: ['IST', 'prevenção', 'camisinha'],
-    tema: 'ISTs',
-  },
-  {
-    id: '5',
-    titulo: 'Menopausa: O Que Esperar',
-    descricao:
-      'Entenda as mudanças físicas e emocionais da menopausa e como atravessar essa fase com qualidade de vida.',
-    icone: 'self-improvement',
-    palavrasChave: ['menopausa', 'hormônios', 'climatério'],
-    tema: 'Menopausa',
-  },
-];
+import { api } from './services/api';
+import { borda, cores, espacamento, sombra, tipografia } from './styles/theme';
 
 export default function Home() {
+  const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { alternarFavorito, eFavorito } = useFavoritos();
+  const { alternarFavorito, eFavorito, sincronizarFavoritos } = useFavoritos();
   const { ciclos } = useDiario();
 
   const [nomeUsuario, setNomeUsuario] = useState('Usuária');
+  const [artigos, setArtigos] = useState<Artigo[]>([]);
+  const [carregandoArtigos, setCarregandoArtigos] = useState(true);
+
+  const carregarArtigos = useCallback(async () => {
+    setCarregandoArtigos(true);
+    try {
+      const resposta = await api('/artigos?destaque=true');
+      if (resposta?.artigos && Array.isArray(resposta.artigos)) {
+        const formatados: Artigo[] = resposta.artigos.map((item: any) => ({
+          id: String(item.id),
+          titulo: item.titulo || '',
+          descricao: item.conteudo || '',
+          icone: item.icone || '',
+          palavrasChave: Array.isArray(item.palavras_chave)
+            ? item.palavras_chave.map((pc: any) => (typeof pc === 'string' ? pc : pc.nome || ''))
+            : [],
+          tema:
+            typeof item.tema === 'object' && item.tema !== null
+              ? item.tema.nome || ''
+              : item.tema || '',
+        }));
+
+        setArtigos(formatados);
+
+        const favoritados = resposta.artigos
+          .filter((item: any) => item.curtido)
+          .map((item: any) => ({
+            id: String(item.id),
+            titulo: item.titulo || '',
+            descricao: item.conteudo || '',
+            icone: item.icone || '',
+            palavrasChave: Array.isArray(item.palavras_chave)
+              ? item.palavras_chave.map((pc: any) => (typeof pc === 'string' ? pc : pc.nome || ''))
+              : [],
+            tema:
+              typeof item.tema === 'object' && item.tema !== null
+                ? item.tema.nome || ''
+                : item.tema || '',
+          }));
+
+        if (favoritados.length > 0 && sincronizarFavoritos) {
+          sincronizarFavoritos(favoritados);
+        }
+      } else {
+        setArtigos([]);
+      }
+    } catch (erro) {
+      console.log('Erro ao carregar artigos recomendados:', erro);
+      setArtigos([]);
+    } finally {
+      setCarregandoArtigos(false);
+    }
+  }, [sincronizarFavoritos]);
 
   useEffect(() => {
     AsyncStorage.getItem('@usuario').then((dados) => {
@@ -87,7 +96,9 @@ export default function Home() {
         } catch { }
       }
     });
-  }, []);
+
+    carregarArtigos();
+  }, [carregarArtigos]);
 
   const duracaoMedia = useMemo(() => calcularDuracaoMedia(ciclos), [ciclos]);
   const regularidade = useMemo(() => calcularRegularidade(ciclos), [ciclos]);
@@ -160,16 +171,36 @@ export default function Home() {
         <View style={estilos.secao}>
           <Text style={estilos.secaoTitulo}>Artigos recomendados para você</Text>
 
-          <View style={estilos.listaArtigos}>
-            {ARTIGOS_RECOMENDADOS.map((artigo) => (
-              <ArticleCard
-                key={artigo.id}
-                artigo={artigo}
-                curtido={eFavorito(artigo.id)}
-                aoAlternarCurtida={() => alternarFavorito(artigo)}
-              />
-            ))}
-          </View>
+          {carregandoArtigos ? (
+            <View style={estilos.containerCarregando}>
+              <ActivityIndicator size="small" color={cores.primaria} />
+              <Text style={estilos.textoCarregando}>Carregando artigos recomendados...</Text>
+            </View>
+          ) : artigos.length === 0 ? (
+            <View style={estilos.containerVazio}>
+              <MaterialIcons name="auto-stories" size={40} color={cores.mutedForeground} />
+              <Text style={estilos.textoVazio}>
+                Não existe nenhum artigo recomendado para você no momento.
+              </Text>
+            </View>
+          ) : (
+            <View style={estilos.listaArtigos}>
+              {artigos.map((artigo) => (
+                <ArticleCard
+                  key={artigo.id}
+                  artigo={artigo}
+                  curtido={eFavorito(artigo.id)}
+                  aoAlternarCurtida={() => alternarFavorito(artigo)}
+                  aoPressionar={() =>
+                    router.push({
+                      pathname: '/artigo',
+                      params: { id: artigo.id },
+                    })
+                  }
+                />
+              ))}
+            </View>
+          )}
         </View>
 
         <Alert mensagem="Este aplicativo tem caráter informativo e não substitui avaliação médica profissional." />
@@ -218,5 +249,39 @@ const estilos = StyleSheet.create({
 
   listaArtigos: {
     gap: espacamento.md,
+  },
+  containerCarregando: {
+    backgroundColor: cores.branco,
+    borderRadius: borda.md,
+    borderWidth: 1,
+    borderColor: cores.borda,
+    padding: espacamento.gd,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: espacamento.pq,
+    ...sombra.pq,
+  },
+  textoCarregando: {
+    fontSize: tipografia.tamanhoPq,
+    fontFamily: tipografia.inter.regular,
+    color: cores.mutedForeground,
+    marginTop: espacamento.pq,
+  },
+  containerVazio: {
+    backgroundColor: cores.branco,
+    borderRadius: borda.md,
+    borderWidth: 1,
+    borderColor: cores.borda,
+    padding: espacamento.gd,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: espacamento.pq,
+    ...sombra.pq,
+  },
+  textoVazio: {
+    fontSize: tipografia.tamanhoMd,
+    fontFamily: tipografia.inter.medio,
+    color: cores.mutedForeground,
+    textAlign: 'center',
   },
 });
