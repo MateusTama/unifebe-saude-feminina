@@ -1,6 +1,15 @@
+import unicodedata
 from flask import request, jsonify
 from flask_jwt_extended import get_jwt_identity
+from sqlalchemy import func
 from app.models import db, Artigo, Tema, PalavraChave, ArtigoPalavraChave, ArtigoFavorito
+
+
+def remover_acentos(texto):
+    if not texto:
+        return ""
+    nfkd = unicodedata.normalize('NFKD', str(texto))
+    return "".join([c for c in nfkd if not unicodedata.combining(c)])
 
 
 def serializar_artigo(artigo, curtido=None):
@@ -43,10 +52,14 @@ def listar_artigos():
 
     query = Artigo.query.filter(Artigo.situacao.is_(True))
 
-    # Filtro por título
+    # Filtro por título (accent e case insensitive)
     titulo = request.args.get('titulo')
     if titulo and titulo.strip():
-        query = query.filter(Artigo.titulo.ilike(f"%{titulo.strip()}%"))
+        termo = f"%{titulo.strip()}%"
+        try:
+            query = query.filter(func.unaccent(Artigo.titulo).ilike(func.unaccent(termo)))
+        except Exception:
+            query = query.filter(Artigo.titulo.ilike(termo))
 
     # Filtro por tema_id
     tema_id = request.args.get('tema_id')
@@ -79,7 +92,44 @@ def listar_artigos():
                 )
             )
 
-    artigos = query.order_by(Artigo.data_cadastro.desc(), Artigo.id.desc()).all()
+    try:
+        artigos = query.order_by(Artigo.data_cadastro.desc(), Artigo.id.desc()).all()
+    except Exception:
+        db.session.rollback()
+        # Fallback caso unaccent não esteja habilitado no banco
+        query_fallback = Artigo.query.filter(Artigo.situacao.is_(True))
+
+        if tema_id and str(tema_id).isdigit():
+            query_fallback = query_fallback.filter(Artigo.tema_id == int(tema_id))
+
+        if destaque is not None and destaque != '':
+            if str(destaque).lower() in ['true', '1', 't']:
+                query_fallback = query_fallback.filter(
+                    Artigo.tema_id.in_(
+                        db.session.query(Tema.id).filter(
+                            Tema.tema_destaque.is_(True),
+                            Tema.situacao.is_(True)
+                        )
+                    )
+                )
+
+        if palavras_chave_ids and palavras_chave_ids.strip():
+            ids = [int(i.strip()) for i in palavras_chave_ids.split(',') if i.strip().isdigit()]
+            if ids:
+                query_fallback = query_fallback.filter(
+                    Artigo.id.in_(
+                        db.session.query(ArtigoPalavraChave.artigo_id).filter(
+                            ArtigoPalavraChave.palavra_chave_id.in_(ids)
+                        )
+                    )
+                )
+
+        todos_artigos = query_fallback.order_by(Artigo.data_cadastro.desc(), Artigo.id.desc()).all()
+        if titulo and titulo.strip():
+            termo_norm = remover_acentos(titulo.strip()).lower()
+            artigos = [a for a in todos_artigos if termo_norm in remover_acentos(a.titulo or '').lower()]
+        else:
+            artigos = todos_artigos
 
     # Identificar artigos favoritados pelo usuário autenticado
     artigos_favoritos_ids = set(
@@ -116,6 +166,24 @@ def listar_artigos_favoritos():
     ]
 
     return jsonify({"artigos": resultado}), 200
+
+
+def obter_artigo(id):
+    usuario_id = get_jwt_identity()
+
+    artigo = Artigo.query.filter_by(id=id, situacao=True).first()
+    if not artigo:
+        return jsonify({"mensagem": "Artigo não encontrado"}), 404
+
+    curtido = False
+    if usuario_id:
+        favorito = ArtigoFavorito.query.filter_by(
+            usuario_id=usuario_id,
+            artigo_id=id
+        ).first()
+        curtido = bool(favorito)
+
+    return jsonify({"artigo": serializar_artigo(artigo, curtido=curtido)}), 200
 
 
 def alternar_favorito_artigo(id):
