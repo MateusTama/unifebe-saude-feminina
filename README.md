@@ -35,7 +35,7 @@ Projeto desenvolvido por acadêmicos da **UNIFEBE**:
 - Alan Arlindo Tachini
 - Henrique Gianesini
 - Lucas Eduardo
-- Emiliano Miacci
+- Felipe Potratz Redondo de Menezes
 - Mateus Tamasia
 
 ---
